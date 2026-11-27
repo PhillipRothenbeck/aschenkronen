@@ -198,6 +198,7 @@ body.mob .bhint{font-size:.68rem}
 body.mob:has(#panel:not([hidden])) #actBtns .lbl{display:none}
 body.mob #recBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!important}
 #recBtn[hidden],#marchBtn[hidden]{display:none}
+#marchBtn:disabled{opacity:.7;cursor:default}
 #marchBtn{display:flex;align-items:center;gap:8px;background:#8a2e2a;color:#fff;border:2px solid #000;box-shadow:inset -4px -4px 0 #5a1a18,inset 4px 4px 0 #ffffff40,4px 4px 0 #000;font-weight:700;font-size:1.1rem;padding:9px 16px;white-space:nowrap;z-index:6}
 #marchBtn.cancel{background:var(--panel3)}#marchBtn:active{transform:translate(2px,2px)}
 body.mob #marchBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!important}
@@ -3515,7 +3516,10 @@ function draw(anim){if(!MAP||!S)return;if(ui.dirtyBase)renderBase();if(!anim||!u
     {const S2=SZ;ctx.imageSmoothingEnabled=true;ctx.drawImage(spr(uSpr(bestType(a),a.owner),uOpts(a.owner)),Math.round(x+(SZ-S2)/2),y+SZ-S2,S2,S2);ctx.imageSmoothingEnabled=false;}
     const bx=x+SZ-12,by=y-4;ctx.fillStyle='#000';ctx.fillRect(bx-2,by-2,20,16);ctx.fillStyle=done?'#5a5560':colorOf(a.owner);ctx.fillRect(bx,by,16,12);
     ctx.fillStyle='#fff';ctx.font="700 11px 'Pixelify Sans',monospace";ctx.fillText(a.units.length,bx+8,by+6.5);
-    if(a.id===ui.selArmy){ctx.fillStyle='#ffe066';const L=6;for(const[cx,cy,dx,dy]of[[x-3,y-3,1,1],[x+SZ+3,y-3,-1,1],[x-3,y+SZ+3,1,-1],[x+SZ+3,y+SZ+3,-1,-1]]){ctx.fillRect(Math.min(cx,cx+dx*L),cy-(dy<0?2:0),L,2);ctx.fillRect(cx-(dx<0?2:0),Math.min(cy,cy+dy*L),2,L);}}
+    if(a.id===ui.selArmy||a.id===ui.pick){ctx.globalAlpha=1;
+      ctx.strokeStyle='#000';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(x+SZ/2,y+SZ-sc,SZ*.62,SZ*.2,0,0,7);ctx.stroke();ctx.strokeStyle='#ffe066';ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle='#ffe066';const L=10,T=3;for(const[cx,cy,dx,dy]of[[x-4,y-4,1,1],[x+SZ+4,y-4,-1,1],[x-4,y+SZ+4,1,-1],[x+SZ+4,y+SZ+4,-1,-1]]){ctx.fillRect(Math.min(cx,cx+dx*L),cy-(dy<0?T:0),L,T);ctx.fillRect(cx-(dx<0?T:0),Math.min(cy,cy+dy*L),T,L);}
+      const ax=x+SZ/2,ay=y-12;ctx.fillStyle='#000';ctx.beginPath();ctx.moveTo(ax-9,ay-9);ctx.lineTo(ax+9,ay-9);ctx.lineTo(ax,ay+3);ctx.fill();ctx.fillStyle='#ffe066';ctx.beginPath();ctx.moveTo(ax-6,ay-7);ctx.lineTo(ax+6,ay-7);ctx.lineTo(ax,ay);ctx.fill();}
     ctx.globalAlpha=1;
     if(done){const cx=x+4,cy=y+SZ-6;ctx.fillStyle='#000';ctx.beginPath();ctx.arc(cx,cy,7,0,7);ctx.fill();ctx.fillStyle='#8a8494';ctx.beginPath();ctx.arc(cx,cy,5.6,0,7);ctx.fill();
       ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-3,cy);ctx.lineTo(cx-1,cy+2.4);ctx.lineTo(cx+3.2,cy-2.6);ctx.stroke();}
@@ -3567,15 +3571,16 @@ cv.addEventListener('click',async e=>{if(!S||ui.busy||ui.dragged)return;
       if(X>=0&&Y>=0&&X<HW&&Y<HH&&MAP.hp){const ci=Y*HW+X,si=MAP.hq[ci];if(MAP.hp[ci]===sa.prov&&si>0&&hostile(0,S.provs[sa.prov].vo[si-1]))return doVillage(si-1);}}}
   const h=mapHit(e);
   if(h.army){const a=S.armies.find(x=>x.id===h.army);
-    if(a.owner===0&&ui.selArmy!==a.id){if(ui.selArmy&&moveTargets().has(a.prov))return doMove(a.prov);ui.selArmy=a.id;ui.selProv=a.prov;ui.tab='prov';ui.sub='army';render();return;}
+    if(a.owner===0&&ui.selArmy!==a.id){if(ui.selArmy&&moveTargets().has(a.prov))return doMove(a.prov);ui.selArmy=null;ui.pick=a.id;ui.selProv=null;ui.tab='prov';render();return;}
     if(a.owner!==0&&ui.selArmy){const mt=moveTargets();if(mt.has(a.prov))return doMove(a.prov);}
     ui.selProv=a.prov;ui.tab='prov';render();return;}
-  if(h.prov==null){ui.selArmy=null;ui.selProv=null;render();return;}
+  if(h.prov==null){ui.selArmy=null;ui.pick=null;ui.selProv=null;render();return;}
   if(ui.selArmy){const mt=moveTargets();if(mt.has(h.prov))return doMove(h.prov);
     const a=S.armies.find(x=>x.id===ui.selArmy);if(a&&h.prov!==a.prov){const o=S.provs[h.prov].owner;
       if(MAP.provs[a.prov].adj.includes(h.prov)&&o>=0&&!hostile(0,o)&&!friendly(0,o))toast(`Du lebst in Frieden mit ${S.facs[o].name}. Erkläre zuerst oben unter „Reiche“ den Krieg.`);
       else if(a.moved)toast('Dieses Heer ist diese Saison schon marschiert.');}
     ui.selArmy=null;}
+  {const pa=ui.pick&&S.armies.find(x=>x.id===ui.pick);if(!pa||pa.prov!==h.prov)ui.pick=null;}
   if(ui.selProv!==h.prov)ui.sub='info';ui.selProv=h.prov;ui.tab='prov';render();});
 const ARMY_MAX=12;
 function mergeArmies(pi,owner,keepId){const list=S.armies.filter(a=>a.prov===pi&&a.owner===owner);if(list.length<2)return null;
@@ -3944,7 +3949,7 @@ function armyLine(a){const mineA=a.owner===0;return`<div class="row">${crestIc(a
 function provInfo(i){return provInfo0(i)+tradeSec(i);}
 function provInfo0(i){const f=S.facs[0],p=S.provs[i],mine=p.owner===0,sk=SKIN[raceOf(p.owner)];
   let h=`<div class="pop">${[['Bauern','#9a6a3a',0],['Bürger','#5f9de0',1],['Adlige','#b07ef0',2]].map(([n,c,j])=>`<div title="${n}">${ic('person',24,{x:c,c:sk})}<span><b>${fmt(p.pop[j])}</b><small>${n}</small></span></div>`).join('')}</div>`;
-  {const mine2=S.armies.filter(a=>a.owner===0&&a.prov===i);if(mine2.length)h+=`<div class="sec"><h3>Deine Heere hier</h3>${mine2.map(a=>`<div class="army ${a.id===ui.selArmy?'sel':''}">${armyLine(a)}</div>`).join('')}</div>`;}
+  {const mine2=S.armies.filter(a=>a.owner===0&&a.prov===i);if(mine2.length)h+=`<div class="sec"><h3>Deine Heere hier</h3>${mine2.map(a=>`<div class="army ${a.id===ui.selArmy||a.id===ui.pick?'sel':''}">${armyLine(a)}</div>`).join('')}</div>`;}
   h+=`<div class="brow" title="Hohe Unruhe führt zu Aufständen">${ic('fire',18)}<span>Unruhe</span>${bar(p.unrest,p.unrest>60?'var(--red)':p.unrest>35?'var(--gold)':'var(--green)')}<b>${fmt(p.unrest)}%</b></div>`;
   const m0=MAP.provs[i];
   const myA=S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved&&a.id===ui.selArmy)||S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved);
@@ -3966,7 +3971,7 @@ function provInfo0(i){const f=S.facs[0],p=S.provs[i],mine=p.owner===0,sk=SKIN[ra
     const mineHere=S.armies.find(a=>a.owner===0&&a.prov===i&&a.siege===i&&!a.moved);
     if(mineHere)h+=`<button type="button" class="btn war" data-act="assault" data-id="${mineHere.id}">${ic('swords',16)} Mauern stürmen <small>Verteidiger ×${wallMult(mineHere,p).toFixed(2).replace('.',',')}</small></button>`;}
   const here=S.armies.filter(a=>a.prov===i);
-  if(here.length)h+=`<div class="sec"><h3>Heere hier</h3>${here.map(a=>`<div class="army ${a.id===ui.selArmy?'sel':''}">${armyLine(a)}</div>`).join('')}${here.filter(a=>a.owner===0).length>1?'<button type="button" class="btn pri" data-act="merge">Deine Heere hier vereinen</button>':''}</div>`;
+  if(here.length)h+=`<div class="sec"><h3>Heere hier</h3>${here.map(a=>`<div class="army ${a.id===ui.selArmy||a.id===ui.pick?'sel':''}">${armyLine(a)}</div>`).join('')}${here.filter(a=>a.owner===0).length>1?'<button type="button" class="btn pri" data-act="merge">Deine Heere hier vereinen</button>':''}</div>`;
   return h;}
 function provBuild(i){const f=S.facs[0],p=S.provs[i],m=MAP.provs[i];
   let h=`<div class="sec"><h3>${ic('b_manor',14)} Hauptstadt ${esc(m.city)} <span class="sub">Platz ${devUsed(p)} von ${devMax(p)}</span></h3><div class="ctiles">`;
@@ -3993,7 +3998,7 @@ function provArmy(i){const f=S.facs[0],p=S.provs[i];
   const here=S.armies.filter(a=>a.prov===i);
   if(here.length){h+=`<div class="sec"><h3>Heere hier</h3>`;
     for(const a of here){const mineA=a.owner===0;
-      h+=`<div class="army ${a.id===ui.selArmy?'sel':''}">${armyLine(a)}
+      h+=`<div class="army ${a.id===ui.selArmy||a.id===ui.pick?'sel':''}">${armyLine(a)}
         <div class="ulist">${a.units.map((u,j)=>`<div class="uc" title="${esc(uName(u.t,a.owner))}: ${fmt(u.str)}%">${uIcon(u.t,a.owner,28)}<div class="hp"><span style="width:${u.str}%;background:${u.str>60?'var(--green)':u.str>30?'var(--gold)':'var(--red)'}"></span></div>${mineA?`<button type="button" class="x" data-act="disband" data-id="${a.id}" data-j="${j}" title="Entlassen" aria-label="Kompanie entlassen">×</button>`:''}</div>`).join('')}</div>
         ${mineA&&a.id===ui.selArmy?'<small class="sub">Mit × entlässt du eine Kompanie.</small>':''}</div>`;}
     if(here.filter(a=>a.owner===0).length>1)h+=`<button type="button" class="btn pri" data-act="merge">Deine Heere hier vereinen</button>`;
@@ -4059,22 +4064,24 @@ $('#pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-a
 $('#endTurn').addEventListener('click',endTurn);
 const pinfo=e=>{const t=e.target.closest&&e.target.closest('.ct');const el=$('#pinfo');if(t&&el&&t.title)el.textContent=t.title;};
 $('#pbody').addEventListener('mouseover',pinfo);$('#pbody').addEventListener('focusin',pinfo);
+const pickedArmy=()=>ui.pick?S.armies.find(x=>x.id===ui.pick&&x.owner===0):null;
 $('#marchBtn').addEventListener('click',()=>{if(!S||ui.busy)return;
-  if(moving()){ui.selArmy=null;ui.peek=false;render();return;}
-  const ready=S.armies.filter(x=>x.owner===0&&!x.moved&&x.units.length);if(!ready.length)return;
-  const here=ui.selProv!=null&&ready.find(a=>a.prov===ui.selProv),n=here||ready[0];
-  ui.selArmy=n.id;ui.selProv=n.prov;ui.peek=false;setTimeout(()=>centerOn(MAP.provs[n.prov].lx,MAP.provs[n.prov].ly),0);render();});
-$('#recBtn').addEventListener('click',()=>{if(!S||ui.busy)return;const i=ui.selProv!=null&&S.provs[ui.selProv].owner===0?ui.selProv:S.facs[0].cap;
-  ui.selArmy=null;ui.peek=false;ui.selProv=i;ui.tab='prov';ui.sub='army';if(i!==ui.selProv||true)setTimeout(()=>centerOn(MAP.provs[i].lx,MAP.provs[i].ly),0);render();});
-function marchUI(){{const r=$('#recBtn');if(r){r.hidden=!S||S.over||moving()||!owned(0).length;r.innerHTML=`${ic('b_barracks',22)}<span class="lbl">Rekrutieren</span>`;r.title='Rekrutieren';}}const b=$('#marchBtn');if(!b||!S)return;const ready=S.armies.filter(x=>x.owner===0&&!x.moved&&x.units.length);
-  if(moving()){b.hidden=false;b.className='cancel';b.innerHTML='✕<span class="lbl"> Abbrechen</span>';return;}
-  if(!ready.length||S.over){b.hidden=true;return;}const here=ui.selProv!=null&&ready.some(a=>a.prov===ui.selProv);
-  b.hidden=false;b.className='';b.innerHTML=`${ic('swords',22)}<span class="lbl">Marschieren${here||ready.length<2?'':` (${ready.length})`}</span>`;b.title='Marschieren';}
+  if(moving()){ui.selArmy=null;render();return;}
+  const a=pickedArmy();if(!a||a.moved)return;ui.selArmy=a.id;ui.selProv=a.prov;ui.peek=false;setTimeout(()=>centerOn(MAP.provs[a.prov].lx,MAP.provs[a.prov].ly),0);render();});
+$('#recBtn').addEventListener('click',()=>{if(!S||ui.busy)return;const a=pickedArmy();if(!a)return;
+  ui.selArmy=null;ui.peek=false;ui.selProv=a.prov;ui.tab='prov';ui.sub='army';render();});
+function marchUI(){const b=$('#marchBtn'),r=$('#recBtn');if(!b||!r||!S)return;
+  if(ui.pick&&!pickedArmy())ui.pick=null;const a=pickedArmy();
+  if(moving()){b.hidden=false;b.disabled=false;b.className='cancel';b.innerHTML='✕<span class="lbl"> Abbrechen</span>';r.hidden=true;return;}
+  if(!a||S.over){b.hidden=true;r.hidden=true;return;}
+  b.hidden=false;b.disabled=!!a.moved;b.className=a.moved?'cancel':'';
+  b.innerHTML=a.moved?'✓<span class="lbl"> Schon marschiert</span>':`${ic('swords',22)}<span class="lbl">Marschieren</span>`;b.title='Marschieren';
+  r.hidden=S.provs[a.prov].owner!==0;r.innerHTML=`${ic('b_barracks',22)}<span class="lbl">Rekrutieren</span>`;r.title='Rekrutieren';}
 $('#hint').addEventListener('click',e=>{const b=e.target.closest('[data-hint]');if(!b||ui.busy||!S)return;
   if(b.dataset.hint==='peek'){ui.peek=!ui.peek;render();return;}
   if(b.dataset.hint==='merge'){const a=S.armies.find(x=>x.id===ui.selArmy);if(a)mergeArmies(a.prov,0,a.id);render();autosave();return;}
   if(b.dataset.hint==='cancel')ui.selArmy=null;
-  else{const ready=S.armies.filter(x=>x.owner===0&&!x.moved);if(ready.length){const idx=ready.findIndex(x=>x.id===ui.selArmy);const n=ready[(idx+1)%ready.length];ui.selArmy=n.id;ui.selProv=n.prov;ui.tab='prov';ui.sub='army';setTimeout(()=>centerOn(MAP.provs[n.prov].lx,MAP.provs[n.prov].ly),0);}}
+  else{const ready=S.armies.filter(x=>x.owner===0&&!x.moved);if(ready.length){const idx=ready.findIndex(x=>x.id===ui.selArmy);const n=ready[(idx+1)%ready.length];ui.selArmy=null;ui.pick=n.id;ui.selProv=n.prov;ui.tab='prov';ui.sub='army';setTimeout(()=>centerOn(MAP.provs[n.prov].lx,MAP.provs[n.prov].ly),0);}}
   render();});
 const ACTIONS={
   mkt:(d)=>{const f=S.facs[0],n=trade(f,d.k,+d.n);if(!n)toast('Das geht gerade nicht.');ui.dirtyBase=false;render();},
@@ -4089,7 +4096,7 @@ const ACTIONS={
   unroute:(d)=>{S.routes=(S.routes||[]).filter(r=>!(r.a===+d.a&&r.b===+d.b));render();},
   build:(d,f,i)=>{if(build(f,i,d.k))toast(`${bName(d.k,f)} in ${MAP.provs[i].name} gebaut.`);},
   recruit:(d,f,i)=>{const a=recruit(f,d.t,i);if(a){toast(`${uName(d.t,0)} stoßen zu deinem Heer.`);}},
-  selarmy:(d)=>{const id=+d.id;ui.selArmy=ui.selArmy===id?null:id;},
+  selarmy:(d)=>{const id=+d.id;ui.pick=id;ui.selArmy=ui.selArmy===id?null:id;},
   disband:(d)=>{const a=S.armies.find(x=>x.id===+d.id);if(a){a.units.splice(+d.j,1);cleanArmies();}},
   merge:(d,f,i)=>{mergeArmies(i,0,ui.selArmy);},
   assault:async(d)=>{const a=S.armies.find(x=>x.id===+d.id);if(!a)return;ui.busy=true;setBusy(true);try{await assault(a);}finally{ui.busy=false;setBusy(false);}ui.dirtyBase=true;await checkEnd();},
