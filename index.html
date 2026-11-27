@@ -3102,13 +3102,13 @@ const keep=(P,x,y,w,h,R,roofR)=>{P.Q([x,y,x+w,y,x+w,y+h,x,y+h],R);for(let i=0;i<
 /* ---------- icons (design box 32) ---------- */
 const ICONS={
  coin:P=>{P.E(14,18,9,9,DK.gold);P.E(19,13,9,9,DK.gold);P.E(19,13,5.4,5.4,[DK.gold[1],DK.gold[1],DK.gold[2],DK.gold[2]],{lv:2});P.ln(19,9.6,19,16.4,1,DK.gold);},
- grain:P=>{for(const[dx,a]of[[-5,-.35],[0,0],[5,.35]]){P.ln(16+dx*.4,29,16+dx,9,.8,GR.wheat);for(let i=0;i<4;i++){P.E(16+dx-1.2,10+i*3.2,1.4,2.2,GR.wheat,{r:-.5});P.E(16+dx+1.2,10+i*3.2,1.4,2.2,GR.wheat,{r:.5});}}},
+ grain:P=>{const ST=['#1e2e10','#3a5a1c','#5a8a2a','#8cc04a'],EA=['#4a2e08','#8a5a14','#c88a26','#f0c050'];for(const[dx,a]of[[-5,-.35],[0,0],[5,.35]]){P.ln(16+dx*.4,29,16+dx,9,.9,ST);for(let i=0;i<4;i++){P.E(16+dx-1.2,10+i*3.2,1.4,2.2,EA,{r:-.5});P.E(16+dx+1.2,10+i*3.2,1.4,2.2,EA,{r:.5});}}P.ln(9,23,23,23,1.2,ST);},
  timber:P=>{P.Q([4,20,26,10,28,15,6,25],DK.wood);P.E(5,22.4,2.8,2.8,['#3d2b18','#7a5a34','#a88250','#c9a26c']);P.Q([6,12,27,19,26,24,4,17],DK.wood);P.E(26.4,21.4,2.8,2.8,['#3d2b18','#7a5a34','#a88250','#c9a26c']);},
- stone:P=>{P.Q([5,24,9,13,17,10,22,15,20,26],DK.stone);P.Q([15,27,19,17,26,15,29,22,26,28],DK.stone);P.ln(10,16,14,20,.4,DK.stone[0]);},
- iron:P=>{P.Q([4,22,10,14,28,14,24,22],DK.steel);P.Q([4,22,24,22,24,26,4,26],DK.dsteel);P.ln(10,14.6,27,14.6,.5,DK.steel[3]);},
- cloth:P=>{P.Q([5,8,24,6,27,24,8,27],['#2a1c2c','#4a3050','#6e4a76','#946a9c']);P.ln(8,12,24,10,.5,'#2a1c2c');P.ln(9,17,25,15,.5,'#2a1c2c');P.ln(9,22,26,20,.5,'#2a1c2c');},
- mana:P=>{P.Q([16,3,24,14,16,29,8,14],DK.arcane);P.Q([16,3,20,14,16,29],[DK.arcane[1],DK.arcane[2],DK.arcane[3],'#e8e0ff'],{lv:2});P.dot(13,11,1,DK.arcane[3]);},
- renown:P=>{star(P,16,16,12,DK.gold);star(P,16,16,5,[DK.gold[2],DK.gold[2],DK.gold[3],'#fff2c0']);},
+ stone:P=>{const SB=['#3a342a','#6b6250','#9c9178','#d8ceb0'];P.Q([4,27,4,17,14,17,14,27],SB);P.Q([15,27,15,17,28,17,28,27],SB);P.Q([9,16,9,7,22,7,22,16],SB);P.ln(4,22,14,22,.4,SB[0]);P.ln(15,22,28,22,.4,SB[0]);},
+ iron:P=>{const IB=['#14202e','#2a4766','#4a77a6','#9cc4ea'],ID=['#0a121c','#1a2e46','#2e507a','#5a86b8'];P.Q([4,22,10,14,28,14,24,22],IB);P.Q([4,22,24,22,24,26,4,26],ID);P.Q([24,22,28,14,28,18,24,26],ID);P.ln(10,14.8,27,14.8,.6,IB[3]);},
+ cloth:P=>{const CR=['#2a0c10','#5e1a22','#9a2e36','#e06464'];P.E(9,16,5,10,CR);P.Q([9,6,26,6,26,26,9,26],CR);P.E(26,16,2.4,10,['#1a0608','#3e1016','#6e1e26','#a83a40']);P.ln(9,11,26,11,.5,'#2a0c10');P.ln(9,21,26,21,.5,'#2a0c10');P.dot(7.6,16,1.2,'#2a0c10');},
+ mana:P=>{const MC=['#062a2e','#0e5a62','#1fa0aa','#8ff0f0'];P.Q([16,3,24,14,16,29,8,14],MC);P.Q([16,3,20,14,16,29],[MC[1],MC[2],MC[3],'#e8ffff'],{lv:2});P.dot(13,11,1,MC[3]);P.dot(23,6,.9,MC[3]);P.dot(7,22,.7,MC[3]);},
+ renown:P=>{const SV=['#3a3a44','#6e6e7c','#a8a8b8','#f2f2fa'];star(P,16,16,12,SV);star(P,16,16,5,[SV[2],SV[2],SV[3],'#ffffff']);},
  crown:P=>{P.Q([4,24,4,10,10,17,16,6,22,17,28,10,28,24],DK.gold);P.Q([4,22,28,22,28,26,4,26],DK.gold);for(const[x,c]of[[10,'#a8282a'],[16,'#2a5aa8'],[22,'#a8282a']])P.dot(x,23.8,1.4,c);},
  scroll:P=>{P.Q([7,6,25,6,25,26,7,26],GR.plaster);P.E(7,6,2.6,2.2,GR.plaster);P.E(25,26,2.6,2.2,GR.plaster);for(let y=11;y<23;y+=3)P.ln(10,y,22,y,.5,DK.leather);P.dot(20,22,2,'#7a1a14');},
  person:P=>{P.E(16,10,5,5.4,DK.skin.human);P.Q([6,30,8,19,24,19,26,30],DK.leather);P.Q([10,7,12,4,20,4,22,8,16,6],DK.hair.human);},
@@ -3897,8 +3897,9 @@ function tactical(A,D,ctx,ps){return modal((sheet,close)=>{
    PANEL UI
    ============================================================ */
 function costHTML(c,f){return`<span class="cost">${Object.entries(c).filter(([,v])=>v>0).map(([k,v])=>`<span class="${f&&(f.res[k]||0)<v?'short':''}" title="${RES_N[k]}">${ic(RES_IC[k],14,{},RES_N[k])}${Math.round(v)}</span>`).join('')}</span>`;}
+const RES_COL={gold:'#f2c14e',grain:'#8cc04a',timber:'#a8743a',stone:'#d8ceb0',iron:'#6fa0d8',cloth:'#e06464',mana:'#3fd0d8',prestige:'#e8e8f4'};
 function resChip(k,v,d,up){const tip=`${RES_N[k]}: ${fmt(v)}${d!=null?` (${sgn(d)} pro Saison)`:''}${up>=.1?`. Davon Sold für Heere und Garnisonen: −${(Math.round(up*10)/10).toString().replace('.',',')}`:''}`;
-  return`<span class="res" title="${esc(tip)}">${ic(RES_IC[k],20,{},RES_N[k])}<b>${fmt(v)}</b>${d!=null&&Math.abs(d)>=.05?`<i class="${d>=0?'pos':'neg'}">${sgn(d)}</i>`:''}</span>`;}
+  return`<span class="res" style="box-shadow:inset 0 -3px 0 ${RES_COL[k]||'transparent'}" title="${esc(tip)}">${ic(RES_IC[k],20,{},RES_N[k])}<b>${fmt(v)}</b>${d!=null&&Math.abs(d)>=.05?`<i class="${d>=0?'pos':'neg'}">${sgn(d)}</i>`:''}</span>`;}
 function bar(v,col){return`<div class="bar"><span style="width:${clamp(v,0,100)}%;background:${col}"></span></div>`;}
 function pips(L,max){return`<span class="pips">${Array.from({length:max},(_,j)=>`<i class="${j<L?'on':''}"></i>`).join('')}</span>`;}
 function moving(){const a=ui.selArmy&&S&&S.armies.find(x=>x.id===ui.selArmy);return!!(a&&a.owner===0&&!a.moved);}
@@ -3930,10 +3931,11 @@ function render(){if(!S)return;const f=S.facs[0],bal=project(f);
 function listPanel(){return`<div class="plist">${owned(0).map(i=>{const p=S.provs[i],m=MAP.provs[i];
   return`<button type="button" class="prow" data-act="goto" data-i="${i}">${ic('t_'+m.terrain,24)}<span class="grow"><b>${esc(m.name)}${i===S.facs[0].cap?' '+ic('crown',12):''}</b><small>${fmt(p.pop[0]+p.pop[1]+p.pop[2])} Einwohner${S.armies.some(a=>a.owner===0&&a.prov===i)?' · Heer':''}</small></span><span class="mini ${p.unrest>50?'neg':''}">${ic('fire',14)}${fmt(p.unrest)}%</span></button>`;}).join('')}</div>
   <p class="note">Tipp: Grün umrandete Provinzen kannst du betreten, rote angreifen. Graue gehören niemandem.</p>`;}
-function armyLine(a){const mineA=a.owner===0;return`<div class="row">${crestIc(a.owner,18)}<span class="grow"><b>${mineA?'Dein Heer':esc(facName(a.owner))}</b><small>${a.units.length} Kompanien · ${esc(a.gen.name)}${a.moved&&mineA?' · ist marschiert':''}${a.siege!=null?' · belagert':''}</small></span>${mineA?`<button type="button" class="btn ${a.id===ui.selArmy?'':'pri'}" data-act="selarmy" data-id="${a.id}">${a.id===ui.selArmy?'Abwählen':'Befehligen'}</button>`:''}</div>`;}
+function armyLine(a){const mineA=a.owner===0;return`<div class="row">${crestIc(a.owner,18)}<span class="grow"><b>${mineA?'Dein Heer':esc(facName(a.owner))}</b><small>${a.units.length} Kompanien · ${esc(a.gen.name)}${a.moved&&mineA?' · ist marschiert':''}${a.siege!=null?' · belagert':''}</small></span>${mineA?(a.moved&&a.id!==ui.selArmy?`<button type="button" class="btn" disabled>Schon marschiert</button>`:`<button type="button" class="btn ${a.id===ui.selArmy?'':'pri'}" data-act="selarmy" data-id="${a.id}">${a.id===ui.selArmy?'Abbrechen':ic('swords',14)+' Marschieren'}</button>`):''}</div>`;}
 function provInfo(i){return provInfo0(i)+tradeSec(i);}
 function provInfo0(i){const f=S.facs[0],p=S.provs[i],mine=p.owner===0,sk=SKIN[raceOf(p.owner)];
   let h=`<div class="pop">${[['Bauern','#9a6a3a',0],['Bürger','#5f9de0',1],['Adlige','#b07ef0',2]].map(([n,c,j])=>`<div title="${n}">${ic('person',24,{x:c,c:sk})}<span><b>${fmt(p.pop[j])}</b><small>${n}</small></span></div>`).join('')}</div>`;
+  {const mine2=S.armies.filter(a=>a.owner===0&&a.prov===i);if(mine2.length)h+=`<div class="sec"><h3>Deine Heere hier</h3>${mine2.map(a=>`<div class="army ${a.id===ui.selArmy?'sel':''}">${armyLine(a)}</div>`).join('')}</div>`;}
   h+=`<div class="brow" title="Hohe Unruhe führt zu Aufständen">${ic('fire',18)}<span>Unruhe</span>${bar(p.unrest,p.unrest>60?'var(--red)':p.unrest>35?'var(--gold)':'var(--green)')}<b>${fmt(p.unrest)}%</b></div>`;
   const m0=MAP.provs[i];
   const myA=S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved&&a.id===ui.selArmy)||S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved);
