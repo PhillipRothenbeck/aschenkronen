@@ -3452,7 +3452,7 @@ function makeRivers(lsd){const r=mulberry(MAP.seed*5+1),out=[],cand=[];
       if(!best)break;[px,py,dx0,dy0]=best;}
     if(path.length>14&&MAP.cell[py*GW+px]<0)out.push(path);}
   return out;}
-function buildHiRes(){const r=mulberry(MAP.seed*3+11),nA=makeNoise(r,40),nB=makeNoise(r,40),nC=makeNoise(r,40),nD=makeNoise(r,40),nE=makeNoise(r,40);
+function buildHiRes(){_seat.clear();_layout.clear();const r=mulberry(MAP.seed*3+11),nA=makeNoise(r,40),nB=makeNoise(r,40),nC=makeNoise(r,40),nD=makeNoise(r,40),nE=makeNoise(r,40);
   const N=HW*HH,hp=new Int16Array(N),hq=new Int8Array(N),hs=new Float32Array(N),hr=new Float32Array(N);
   const sdf=chamfer(i=>MAP.cell[i]>=0),lsd=chamfer(i=>MAP.cell[i]<0);
   const warp=(X,Y)=>{const u=X/HW*14,v=Y/HH*14;return[(nA(u,v)-.5)*3.2+(nC(u*2.7,v*2.7)-.5)*1.1,(nB(u,v)-.5)*3.2+(nD(u*2.7,v*2.7)-.5)*1.1];};
@@ -3573,7 +3573,7 @@ function draw(anim){if(!MAP||!S)return;if(ui.dirtyBase)renderBase();if(!anim||!u
       if(isCap)ctx.drawImage(spr('crown'),Math.round(xx-tw/2-18),yy-8,14,14);
       if(sieged)ctx.drawImage(spr('fire'),Math.round(xx+tw/2+3),yy-9,16,16);
       continue;}
-    const cx=Math.round((Math.round(m.lx/CS)-5.5)*CS*k),cy=Math.round((Math.round(m.ly/CS)+2.4)*CS*k);
+    const st=seatOf(m.id),cx=Math.round(st[0]*CS*k),cy=Math.round((st[1]+1.4)*CS*k);
     ctx.font=`${isCap?700:600} 13px 'Pixelify Sans',monospace`;const cw=ctx.measureText(m.city).width;
     ctx.lineWidth=3;ctx.strokeStyle='#141220';ctx.strokeText(m.city,cx,cy);ctx.fillStyle=isCap?'#ffe9a8':'#d8cdb4';ctx.fillText(m.city,cx,cy);
     if(isCap)ctx.drawImage(spr('crown'),Math.round(cx-cw/2-16),cy-8,14,14);
@@ -3692,10 +3692,21 @@ function drawWall(c,cols,towers,wl,back,race='human'){const Sx=WALL_STYLE[race]|
   const sorted=cols.slice().sort((a,b)=>a.Y-b.Y),tw=towers.slice().sort((a,b)=>a.Y-b.Y);let start=0;
   for(const t of tw){let end=start;while(end<sorted.length&&sorted[end].Y<=t.Y)end++;pass(sorted.slice(start,end));start=end;tower(t);}
   pass(sorted.slice(start));}
+/* where the fortress stands: near the usual spot, but with its whole footprint inside the province as painted */
+const _seat=new Map();
+function seatOf(i){if(_seat.has(i))return _seat.get(i);if(!MAP.hp)buildHiRes();const m=MAP.provs[i],dx0=Math.round(m.lx/CS)-5.5,dy0=Math.round(m.ly/CS)+1;
+  const vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
+  const fits=(cx,cy,w,h)=>{for(let y=cy*RS-h;y<=cy*RS+1;y+=2)for(let x=cx*RS-w/2-1;x<=cx*RS+w/2+1;x+=2){const X=Math.round(x),Y=Math.round(y);if(X<0||Y<0||X>=HW||Y>=HH||MAP.hp[Y*HW+X]!==i)return false;}
+    return vils.every(([vx,vy])=>Math.hypot(vx-cx,vy-(cy-h/RS/2))>w/RS/2+1.6);};
+  let best=null;
+  for(const tier of[5,3,2,1]){const w=FORT_W[tier-1]+2,h=FORT_H[tier-1]+2;
+    for(let r=0;r<=14&&!best;r+=.5)for(let a=0;a<6.283&&!best;a+=r?.5/r:7){const cx=dx0+Math.cos(a)*r,cy=dy0+Math.sin(a)*r*.8;if(fits(cx,cy,w,h))best=[cx,cy];}
+    if(best)break;}
+  if(!best)best=[dx0,dy0];_seat.set(i,best);return best;}
 const _layout=new Map();
 function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))return _layout.get(key);
-  const m=MAP.provs[i],F=2/RS,cx=Math.round(m.lx/CS)-5.5,cy=Math.round(m.ly/CS)+1,vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
-  const own=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<GW&&y<GH&&MAP.cell[y*GW+x]===i;};
+  const m=MAP.provs[i],F=2/RS,[cx,cy]=seatOf(i),vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
+  const own=(x,y)=>{const X=Math.round(x*RS),Y=Math.round(y*RS);return X>=0&&Y>=0&&X<HW&&Y<HH&&MAP.hp[Y*HW+X]===i;};
   const free=(x,y,house)=>{for(const dy of[-2*F,-F,0,F])for(const dx of[-1.5*F,0,1.5*F])if(!own(x+dx,y+dy))return false;
     const dc=Math.hypot(x-cx,(y-cy+2.5*F)*1.3),fw=(FORT_W[t-1]+2)/2/RS,fh=(FORT_H[t-1]+2)/RS;if(Math.abs(x-cx)<fw+.9&&y>cy-fh-.4&&y<cy+1.4)return false;if(dc<5.6*F)return false;for(const[vx,vy]of vils){const dv=Math.hypot(x-vx,y-vy);if(dv<4.2*F||dv<dc-F)return false;}
     for(const[hx,hy]of house)if(Math.hypot(x-hx,y-hy)<2.9*F)return false;return true;};
