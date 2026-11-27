@@ -1715,7 +1715,7 @@ function encodeSave(){return btoa(unescape(encodeURIComponent(serialize())));}
 function loadState(json){const o=JSON.parse(json);if(!o||o.v!==4)throw new Error('Kein Spielstand dieser Version');MAP=generateMap(o.seed,o.mapv||1);
   // restore capital terrain overrides
   if(o.terr)o.terr.forEach((t,i)=>MAP.provs[i].terrain=t);
-  S=o;S.imp=S.imp||[];S.provs.forEach((p,i)=>{if(!p.vk)initVillages(i);if(!p.vo)p.vo=p.vk.map(()=>p.owner);});S.facs.forEach(f=>{if(f.home==null)f.home=f.cap;});ui.selProv=null;ui.selArmy=null;ui.dirtyBase=true;ui.ox=null;ui.cam={z:1.7};sizeCanvas();render();}
+  S=o;S.imp=S.imp||[];S.provs.forEach((p,i)=>{if(!p.vk)initVillages(i);if(!p.vo)p.vo=p.vk.map(()=>p.owner);});S.facs.forEach(f=>{if(f.home==null)f.home=f.cap;});ui.selProv=null;ui.selArmy=null;ui.dirtyBase=true;ui.ox=null;ui.cam={z:document.body.classList.contains('mob')?2.6:2};sizeCanvas();render();}
 /* phones: never lose a game to a stray swipe. The back gesture stays inside the game, and the game saves whenever it is hidden. */
 let _saveT=0;function saveSoon(){clearTimeout(_saveT);_saveT=setTimeout(autosave,2500);}
 (function guard(){
@@ -3376,13 +3376,18 @@ function raceTex(c,r,x,y,h,t){
   else if(r==='dwarf'){c=c.map((v,j)=>v*.84+[126,134,146][j]*.16);if(h%15===0)c=c.map(v=>v+8);}
   else if(r==='human'&&(t==='plains'||t==='hills')&&y%3===0)c=c.map(v=>v+9);
   return c;}
+function raceTexIn(c,r,x,y,h,t){
+  if(r==='undead'){c[0]=c[0]*.6+37.6;c[1]=c[1]*.6+33.6;c[2]=c[2]*.6+44.8;if(h%17===0){c[0]*=.9;c[1]*=.9;c[2]*=.9;}}
+  else if(r==='orc'){c[0]=c[0]*.78+26;c[1]=c[1]*.78+18.5;c[2]=c[2]*.78+11;if(h%19===0){c[0]*=.9;c[1]*=.9;c[2]*=.9;}}
+  else if(r==='dwarf'){c[0]=c[0]*.84+20.2;c[1]=c[1]*.84+21.4;c[2]=c[2]*.84+23.4;if(h%15===0){c[0]+=8;c[1]+=8;c[2]+=8;}}
+  else if(r==='human'&&(t==='plains'||t==='hills')&&y%3===0){c[0]+=9;c[1]+=9;c[2]+=9;}}
 const RACE_SCALE={};
 const RES_IC={gold:'coin',grain:'grain',timber:'timber',stone:'stone',iron:'iron',cloth:'cloth',mana:'mana',prestige:'renown'};
 
 /* ============================================================
    MAP RENDERING
    ============================================================ */
-const RS=2,HW=GW*RS,HH=GH*RS;
+const RS=4,HW=GW*RS,HH=GH*RS;   // pixels of the painted map per map cell (finer = more room for towns and villages)
 const cv=$('#map'),ctx=cv.getContext('2d');
 const base=document.createElement('canvas');base.width=HW;base.height=HH;const bctx=base.getContext('2d');
 const ov=document.createElement('canvas');ov.width=HW;ov.height=HH;const octx=ov.getContext('2d');
@@ -3423,27 +3428,28 @@ function landCol(p,own){const key=p*64+own+2;if(_lc.has(key))return _lc.get(key)
 function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.facs[0]?homeland(0):[]),hc0=hexRgb(colorOf(0));const HP=MAP.hp,HQ=MAP.hq,HS=MAP.hs,HR=MAP.hr;
   const img=bctx.createImageData(HW,HH),d=img.data,np=MAP.provs.length;
   const at=(x,y)=>MAP.cell[clamp(y,0,GH-1)*GW+clamp(x,0,GW-1)];
-  const N4=[[1,0],[-1,0],[0,1],[0,-1]],N8=[[2,0],[-2,0],[0,2],[0,-2],[1,1],[-1,-1],[1,-1],[-1,1]];
-  for(let Y=0;Y<HH;Y++)for(let X=0;X<HW;X++){const i=Y*HW+X,p=HP[i],o=i*4,h=((X*73856093)^(Y*19349663))>>>0,x=X>>1,y=Y>>1;let c;
+  const h1=RS/2,N4=[[h1,0],[-h1,0],[0,h1],[0,-h1]],N8=[[RS,0],[-RS,0],[0,RS],[0,-RS],[h1,h1],[-h1,-h1],[h1,-h1],[-h1,h1]];
+  const OW=new Int16Array(HW*HH);for(let q=0;q<HW*HH;q++){const pp=HP[q];OW[q]=pp<0?-99:sOwner(pp,HQ[q]);}   // owner of every pixel, looked up once
+  for(let Y=0;Y<HH;Y++)for(let X=0;X<HW;X++){const i=Y*HW+X,p=HP[i],o=i*4,h=((X*73856093)^(Y*19349663))>>>0,x=Math.floor(X*2/RS),y=Math.floor(Y*2/RS);let c;
     if(p<0){const sd=HS[i];let nearLand=false;
       for(const[dx,dy]of N4){const xx=X+dx,yy=Y+dy;if(xx>=0&&yy>=0&&xx<HW&&yy<HH&&HP[yy*HW+xx]>=0){nearLand=true;break;}}
       const dd=sd+((h%7)-3)*.07;
       c=nearLand?[92,116,126]:dd<1.6?((X+Y)%2?[50,72,92]:[46,68,88]):dd<2.9?((X+Y)%2?[36,56,78]:[32,52,74]):dd<5?[26,42,62]:dd<8?[20,34,52]:[15,26,42];
       if(dd>4&&h%97<2)c=[44,66,90];}
-    else{const si=HQ[i],own=sOwner(p,si),P=S.provs[p];c=landCol(p,own).slice();if((X+Y)%2===0)c=c.map(v=>v+5);if(h%17===0)c=c.map(v=>v-14);else if(h%29===0)c=c.map(v=>v+10);
-      c=raceTex(c,raceOf(own),x,y,h,MAP.provs[p].terrain);{const rl=1+HR[i]*(RELIEF[MAP.provs[p].terrain]||.05);c=c.map(v=>v*rl);}
+    else{const si=HQ[i],own=OW[i],P=S.provs[p],rc=raceOf(own);c=landCol(p,own).slice();if((X+Y)%2===0)(c[0]+=5,c[1]+=5,c[2]+=5);if(h%17===0)(c[0]-=14,c[1]-=14,c[2]-=14);else if(h%29===0)(c[0]+=10,c[1]+=10,c[2]+=10);
+      raceTexIn(c,rc,x,y,h,MAP.provs[p].terrain);{const rl=1+HR[i]*(RELIEF[MAP.provs[p].terrain]||.05);c[0]*=rl;c[1]*=rl;c[2]*=rl;}
       if(si>0){const kind=P.vk[si-1];
-        if(kind==='farm'){if(Y%4===0)c=c.map(v=>v+12);else if(Y%4===1)c=c.map(v=>v-5);}
+        if(kind==='farm'){if(Y%4===0)(c[0]+=12,c[1]+=12,c[2]+=12);else if(Y%4===1)(c[0]-=5,c[1]-=5,c[2]-=5);}
         else if(kind==='sheep'){if(h%37===0)c=[238,234,222];else if(h%37===1)c=[60,52,48];}
         else if(kind==='quarry'||kind==='mine'){if(h%23===0)c=[156,152,146];else if(h%53===0)c=[92,88,84];}
-        else if(kind==='lumber'){if(h%9===0)c=c.map(v=>v*.7);}
+        else if(kind==='lumber'){if(h%9===0)(c[0]*=.7,c[1]*=.7,c[2]*=.7);}
         else if(kind==='herb'){if(h%29===0)c=[180,130,240];else if(h%29===1)c=[240,210,110];}
-        else if(kind==='trade'){if(X%8===0&&Y%2===0)c=c.map(v=>v+16);}else if(kind==='abbey'){if(X%10===0&&Y%10<3||Y%10===1&&X%10<3)c=[226,216,188];}}
+        else if(kind==='trade'){if(X%8===0&&Y%2===0)(c[0]+=16,c[1]+=16,c[2]+=16);}else if(kind==='abbey'){if(X%10===0&&Y%10<3||Y%10===1&&X%10<3)c=[226,216,188];}}
       let pEdge=false,realm=false,coast=false,sEdge=false,realm2=false;
-      for(const[dx,dy]of N4){const qi=clamp(Y+dy,0,HH-1)*HW+clamp(X+dx,0,HW-1),q=HP[qi];if(q<0){coast=true;continue;}const qs=HQ[qi];if(sOwner(q,qs)!==own)realm=true;if(q!==p)pEdge=true;else if(qs!==si)sEdge=true;}
-      if(!realm)for(const[dx,dy]of N8){const qi=clamp(Y+dy,0,HH-1)*HW+clamp(X+dx,0,HW-1),q=HP[qi];if(q>=0&&sOwner(q,HQ[qi])!==own){realm2=true;break;}}
+      for(const[dx,dy]of N4){const qi=clamp(Y+dy,0,HH-1)*HW+clamp(X+dx,0,HW-1),q=HP[qi];if(q<0){coast=true;continue;}const qs=HQ[qi];if(OW[qi]!==own)realm=true;if(q!==p)pEdge=true;else if(qs!==si)sEdge=true;}
+      if(!realm)for(const[dx,dy]of N8){const qi=clamp(Y+dy,0,HH-1)*HW+clamp(X+dx,0,HW-1),q=HP[qi];if(q>=0&&OW[qi]!==own){realm2=true;break;}}
       if(HL0.has(p)&&own!==0&&((X+Y)&7)<2)c=c.map((v,j)=>v*.45+hc0[j]*.55);
-      if(realm)c=ownerCol(own).map(v=>v*.8);else if(realm2)c=ownerCol(own).map(v=>Math.min(255,v*1.12));else if(pEdge)c=c.map(v=>v*.62);else if(sEdge){if((X+Y)%3===0)c=c.map(v=>v*.68);}else if(coast)c=c.map(v=>v*.7);}
+      if(realm){const q=ownerCol(own);c[0]=q[0]*.8;c[1]=q[1]*.8;c[2]=q[2]*.8;}else if(realm2){const q=ownerCol(own);c[0]=Math.min(255,q[0]*1.12);c[1]=Math.min(255,q[1]*1.12);c[2]=Math.min(255,q[2]*1.12);}else if(pEdge)(c[0]*=.62,c[1]*=.62,c[2]*=.62);else if(sEdge){if((X+Y)%3===0)(c[0]*=.68,c[1]*=.68,c[2]*=.68);}else if(coast)(c[0]*=.7,c[1]*=.7,c[2]*=.7);}
     d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;}
   bctx.putImageData(img,0,0);
   for(let d=0;d<8;d++){bctx.fillStyle=`rgba(12,10,18,${.4-d*.05})`;bctx.fillRect(d,d,HW-2*d,1);bctx.fillRect(d,HH-1-d,HW-2*d,1);bctx.fillRect(d,d,1,HH-2*d);bctx.fillRect(HW-1-d,d,1,HH-2*d);}
@@ -3458,13 +3464,12 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
       let ok=true;for(let j=-1;j<=st.length&&ok;j++)for(let k=-1;k<=st[0].length;k++)if(at(x+k,y+j)!==i){ok=false;break;}
       if(!ok||(Math.abs(x-lx)<9&&Math.abs(y-ly)<7))continue;{const wd=MAP.warp(x*RS,y*RS);stamp(bctx,st,Math.round((x-wd[0])*RS),Math.round((y-wd[1])*RS),2);}placed++;}}
   for(let i=0;i<np;i++){const m=MAP.provs[i],p=S.provs[i],o=p.owner,col=o<0?'#9a8f80':colorOf(o);
-    {const t=cityTier(p),cx0=(Math.round(m.lx/CS)-8)*RS,cy0=(Math.round(m.ly/CS)-4)*RS;
-     if(t>=4){bctx.save();bctx.strokeStyle='#1a1820';bctx.lineWidth=3;bctx.beginPath();bctx.ellipse(cx0+5,cy0+8,t>=5?27:23,t>=5?12:10,0,0,7);bctx.stroke();bctx.strokeStyle='#8a8478';bctx.lineWidth=1.4;bctx.stroke();
-       for(let a=0;a<6.28;a+=1.05){const tx=cx0+5+Math.cos(a)*(t>=5?27:23),ty=cy0+8+Math.sin(a)*(t>=5?12:10);bctx.fillStyle='#1a1820';bctx.fillRect(tx-2,ty-3,4,5);bctx.fillStyle='#9a9488';bctx.fillRect(tx-1.4,ty-2.4,2.8,3.6);}bctx.restore();}
-     const spots=[[-11,4],[15,4],[-7,10],[11,10],[-17,-2],[21,-2],[2,13],[-13,11]],n=[0,2,4,6,8][t-1];
-     for(let q=0;q<n;q++){const[dx,dy]=spots[q];stampC(bctx,q>=4?VIL_BIG:VIL_ST,cx0+dx,cy0+dy,col,2);}
-     stampC(bctx,CITY_ST[o<0?'wild':raceOf(o)],cx0,cy0,col,2);}
-    (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)-1)*RS),Math.round(((v.wy??v.y)-1)*RS),p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
+    {const st=CITY_ST[o<0?'wild':raceOf(o)],t=o<0?1:cityTier(p),L=townLayout(i,t,lvl(p,'walls')),cx=L.cx*RS,cy=L.cy*RS;
+     if(L.wall){const pts=L.wall.pts;for(const[wx,wy,ok]of pts){if(!ok)continue;const X=Math.round(wx*RS),Y=Math.round(wy*RS);bctx.fillStyle='#16141c';bctx.fillRect(X-2,Y-2,4,4);bctx.fillStyle='#8e887a';bctx.fillRect(X-1,Y-1,2,2);}
+       for(const[wx,wy]of L.wall.towers){const X=Math.round(wx*RS),Y=Math.round(wy*RS);bctx.fillStyle='#16141c';bctx.fillRect(X-3,Y-6,6,8);bctx.fillStyle='#a49e90';bctx.fillRect(X-2,Y-5,4,6);bctx.fillStyle='#16141c';bctx.fillRect(X-1,Y-5,1,1);}}
+     L.houses.forEach(([hx,hy],j)=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2));
+     stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}
+    (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)+.5)*RS)-3,Math.round(((v.wy??v.y)+2)*RS)-6,p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
   ui.dirtyBase=false;}
 function moveTargets(){const a=ui.selArmy&&S.armies.find(x=>x.id===ui.selArmy);if(!a||a.moved||a.owner!==0)return new Map();
   const mt=new Map();for(const n of MAP.provs[a.prov].adj){const o=S.provs[n].owner;const enemy=S.armies.some(x=>x.prov===n&&hostile(0,x.owner));
@@ -3599,6 +3604,26 @@ cv.addEventListener('click',async e=>{if(!S||ui.busy||ui.dragged)return;
     ui.selArmy=null;}
   {const pa=ui.pick&&S.armies.find(x=>x.id===ui.pick);if(!pa||pa.prov!==h.prov)ui.pick=null;}
   if(ui.selProv!==h.prov)ui.sub='info';ui.selProv=h.prov;ui.tab='prov';render();});
+/* TOWN GROWTH ON THE MAP: houses and a ring wall around the castle, painted at high resolution and drawn live.
+   Spots are chosen per province so nothing covers villages, water, the castle or the neighbours' land. */
+const _layout=new Map();
+function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))return _layout.get(key);
+  const m=MAP.provs[i],F=2/RS,cx=Math.round(m.lx/CS)-5.5,cy=Math.round(m.ly/CS)+1,vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
+  const own=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<GW&&y<GH&&MAP.cell[y*GW+x]===i;};
+  const free=(x,y,house)=>{for(const dy of[-2*F,-F,0,F])for(const dx of[-1.5*F,0,1.5*F])if(!own(x+dx,y+dy))return false;
+    const dc=Math.hypot(x-cx,(y-cy+2.5*F)*1.3);if(dc<5.6*F)return false;for(const[vx,vy]of vils){const dv=Math.hypot(x-vx,y-vy);if(dv<4.2*F||dv<dc-F)return false;}
+    for(const[hx,hy]of house)if(Math.hypot(x-hx,y-hy)<2.9*F)return false;return true;};
+  // the town never reaches the villages: everything stays inside the distance to the nearest one
+  const vilR=vils.length?Math.min(...vils.map(([vx,vy])=>Math.hypot(vx-cx,(vy-cy)/.62))):99,Rmax=14*F;
+  const want=[0,2,4,7,10][t-1],houses=[];
+  for(let r=5.6*F;r<=Rmax&&houses.length<want;r+=1.2*F)for(let a=0;a<6.283&&houses.length<want;a+=.45){const x=cx+Math.cos(a+r)*r,y=cy+Math.sin(a+r)*r*.62;if(free(x,y,houses))houses.push([x,y]);}
+  let wall=null;
+  // a ring wall once walls are built: around castle and houses, but never around a village
+  const mh=houses.length?Math.max(...houses.map(([x,y])=>Math.hypot(x-cx,(y-cy)/.62))):0,Rw=Math.min(Math.max(mh+2.6*F,9*F),vilR-2.6*F);
+  if(wl>=1&&Rw>=7*F){const R=Rw,pts=[];
+    for(let a=0;a<=6.3;a+=.06){const x=cx+Math.cos(a)*R,y=cy-1.5*F+Math.sin(a)*R*.62;pts.push([x,y,own(x,y)&&vils.every(([vx,vy])=>Math.hypot(x-vx,y-vy)>=4.2*F)]);}
+    const step=Math.max(6,15-wl*3);wall={pts,towers:pts.filter((q,j)=>j%step===0&&q[2]),wl};}
+  const L={houses:wall?houses.filter(([x,y])=>Math.hypot(x-cx,(y-cy)/.62)<=Rw-1.6*F):houses,wall,cx,cy};_layout.set(key,L);return L;}
 const ARMY_MAX=12;
 function mergeArmies(pi,owner,keepId){const list=S.armies.filter(a=>a.prov===pi&&a.owner===owner);if(list.length<2)return null;
   const main=list.find(a=>a.id===keepId)||list[0];let left=0;
@@ -4299,7 +4324,7 @@ async function storyTick(){const f=S.facs[0],st=storyOf(f);if(!st||!f.alive)retu
     c=nx;}}
 function storySec(){const f=S.facs[0],st=storyOf(f);if(!st)return'';const D=STORY[f.key];
   return`<div class="sec"><h3>Ziele und Konflikte</h3>${S.sandbox?'<p class="sub">Sandkasten: Diese Ziele sind Anregungen. Spiele, wie du willst.</p>':''}${FATE[f.key]?`<p><b>Sieg:</b> ${esc(FATE[f.key].w)}</p>`:''}<p><b>${esc(D.n)}</b></p>${D.ch.map((c,i)=>i<st.ch?`<p class="sub">✓ ${esc(sFill(f,c.t))}</p>`:i===st.ch?`<div class="note"><b>Kapitel ${i+1}: ${esc(sFill(f,c.t))}</b><br>${esc(sFill(f,c.x))}<br><b>Ziel:</b> ${esc(goalTxt(f,c.g))}${c.r?`<br><small>Belohnung: ${esc(rewardTxt(c.r))}</small>`:''}</div>`:'').join('')}</div>`;}
-function startGame(key,diff,tut){newGame(key,diff);S.tut=tut?{i:0}:{off:true};ui.selProv=tut?null:S.facs[0].cap;ui.tab='prov';ui.dirtyBase=true;ui.ox=null;ui.cam={z:1.7};sizeCanvas();render();autosave();}
+function startGame(key,diff,tut){newGame(key,diff);S.tut=tut?{i:0}:{off:true};ui.selProv=tut?null:S.facs[0].cap;ui.tab='prov';ui.dirtyBase=true;ui.ox=null;ui.cam={z:document.body.classList.contains('mob')?2.6:2};sizeCanvas();render();autosave();}
 function mainMenu(){previewWorld();
   modal((s,close)=>{s.classList.add('mm');$('#modal').classList.add('mmbg');let pickK='varric',diff=1;
     const inGame=S&&!S.preview&&!S.over,saved=savedGame();
