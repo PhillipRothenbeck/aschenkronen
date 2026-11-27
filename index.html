@@ -1,5 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -202,6 +204,7 @@ body.mob #recBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!impor
 #marchBtn.cancel{background:var(--panel3)}#marchBtn:active{transform:translate(2px,2px)}
 body.mob #marchBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!important}
 body.mob #hint.act,body.mob:has(#panel:not([hidden])) #hint.act{top:calc(max(4px,env(safe-area-inset-top,0px)) + 52px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;max-width:calc(100vw - 16px)!important}
+.priv{text-align:left;max-width:60ch}.priv summary{cursor:pointer;text-align:center;text-decoration:underline;min-height:32px}.priv p{margin:.4em 0}
 .pinfo{font-size:.78rem;color:var(--muted);background:#0b0a12;border:2px solid #000;padding:4px 6px;min-height:2.5em}
 .pips{display:inline-flex;gap:2px;flex:none}.pips i{width:7px;height:7px;background:#000;border:1px solid var(--gold-d)}.pips i.on{background:var(--gold)}
 .gov,.army,.card,.fac{background:var(--panel2);border:2px solid #000;padding:6px;display:flex;gap:8px}
@@ -4289,7 +4292,8 @@ function mainMenu(){previewWorld();
         <button type="button" class="btn big" data-mm="load">${ic('scroll',20)} Speichercode laden</button>
         ${inGame?`<button type="button" class="btn big" data-mm="save">${ic('scroll',20)} Speichercode kopieren</button>`:''}
         <button type="button" class="btn big" data-mm="help">${ic('eye',20)} Spielanleitung</button></div>
-      <p class="sub mmfoot">Spielstände werden automatisch in diesem Browser gespeichert.<br>Schrift: Pixelify Sans, SIL Open Font License 1.1 (<a href="fonts/OFL.txt" target="_blank" rel="noopener" style="color:inherit">Lizenz</a>). Alle Grafiken, Namen und Texte sind eigens für dieses Spiel entstanden.</p>`;};
+      <p class="sub mmfoot">Spielstände werden automatisch in diesem Browser gespeichert.<br>Schrift: Pixelify Sans, SIL Open Font License 1.1 (<a href="fonts/OFL.txt" target="_blank" rel="noopener" style="color:inherit">Lizenz</a>). Alle Grafiken, Namen und Texte sind eigens für dieses Spiel entstanden.</p>
+      <details class="sub mmfoot priv"><summary>Datenschutz</summary><p>Aschenkronen ist ein privates, nicht-kommerzielles Hobbyprojekt. Das Spiel setzt keine Cookies, nutzt keine Analyse- oder Werbedienste und lädt nichts von fremden Servern. Spielstände werden nur lokal in deinem Browser gespeichert und nirgendwohin übertragen.</p><p>Die öffentliche Version wird bei GitHub Pages (GitHub, Inc.) bereitgestellt. GitHub verarbeitet dabei technisch notwendige Server-Protokolle, zum Beispiel IP-Adressen. Einzelheiten: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer" style="color:inherit">Datenschutzerklärung von GitHub</a>.</p></details>`;};
     const card=(D,n)=>`<button type="button" class="racecard ${D.key===pickK?'on':''}" data-f="${D.key}" style="--c:${D.color}"><img class="px ux portrait" src="${portraitURL(n*41+11,D.race,{ruler:true,color:D.color})}" width="56" height="56" alt=""><span class="rc"><b>${esc(D.name)}</b><small>${esc(D.d)}</small><small class="rcr">${RACES[D.race].n}: ${RACE_SHORT[D.race]}</small>${FATE[D.key]?`<small class="rcr">Ziel: ${esc(FATE[D.key].w)}</small>`:''}<span class="rcu">${UNIT_ORDER.filter(t=>hasUnit(D.race,t)&&t!=='siege'&&t!=='organ').slice(0,7).map(t=>`<img class="px ux" src="${sprURL('u_'+t+'_'+D.race,{x:D.color})}" width="32" height="32" alt="${esc(RACES[D.race].u[t])}" title="${esc(RACES[D.race].u[t])}">`).join('')}</span></span></button>`;
     const pick=()=>{s.innerHTML=`<div class="mmhead"><button type="button" class="btn" data-mm="home">← Zurück</button><h2>Neues Spiel</h2></div>
       <h3>Wähle dein Reich</h3><div class="racegrid">${FACTIONS.map((D,n)=>card(D,n)).join('')}</div>

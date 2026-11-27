@@ -1,6 +1,17 @@
 # Aschenkronen
 
-Ein kleines Strategiespiel für den Browser.
+Ein kleines Strategiespiel für den Browser. Privates, nicht-kommerzielles Hobbyprojekt.
+
+## Datenschutz
+
+Das Spiel setzt keine Cookies, nutzt keine Analyse- oder Werbedienste und lädt nichts von fremden Servern.
+Spielstände werden nur lokal im Browser gespeichert und nirgendwohin übertragen.
+
+Die Seite wird bei GitHub Pages (GitHub, Inc.) bereitgestellt. GitHub verarbeitet dabei technisch notwendige
+Server-Protokolle, zum Beispiel IP-Adressen. Einzelheiten:
+[Datenschutzerklärung von GitHub](https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement).
+
+Die Seite ist für Suchmaschinen gesperrt (`noindex`).
 
 ## Fremde Bestandteile
 
