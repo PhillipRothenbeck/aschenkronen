@@ -193,6 +193,15 @@ body.mob .bhint{font-size:.68rem}
 .ct .upk{grid-column:2;color:var(--muted);font-size:.66rem;display:flex;gap:4px;align-items:center}.ct .upk .cost{font-size:.66rem}
 .mkt{display:flex;flex-direction:column;gap:4px}.mkt .row{background:var(--panel2);border:2px solid #000;padding:3px 6px}.mkt .btn{padding:3px 6px;font-size:.78rem;flex-wrap:nowrap}
 .cfl{display:block;color:var(--gold)!important;opacity:.85}
+#actBtns{margin-right:auto;align-self:flex-end;display:flex;gap:8px;z-index:6}
+#recBtn{display:flex;align-items:center;gap:8px;background:var(--panel3);color:var(--ink);border:2px solid #000;box-shadow:inset -4px -4px 0 #0008,inset 4px 4px 0 #ffffff26,4px 4px 0 #000;font-weight:700;font-size:1.1rem;padding:9px 16px;white-space:nowrap}
+body.mob:has(#panel:not([hidden])) #actBtns .lbl{display:none}
+body.mob #recBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!important}
+#recBtn[hidden],#marchBtn[hidden]{display:none}
+#marchBtn{display:flex;align-items:center;gap:8px;background:#8a2e2a;color:#fff;border:2px solid #000;box-shadow:inset -4px -4px 0 #5a1a18,inset 4px 4px 0 #ffffff40,4px 4px 0 #000;font-weight:700;font-size:1.1rem;padding:9px 16px;white-space:nowrap;z-index:6}
+#marchBtn.cancel{background:var(--panel3)}#marchBtn:active{transform:translate(2px,2px)}
+body.mob #marchBtn{font-size:1rem!important;min-height:46px;padding:8px 14px!important}
+body.mob #hint.act,body.mob:has(#panel:not([hidden])) #hint.act{top:calc(max(4px,env(safe-area-inset-top,0px)) + 52px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;max-width:calc(100vw - 16px)!important}
 .pinfo{font-size:.78rem;color:var(--muted);background:#0b0a12;border:2px solid #000;padding:4px 6px;min-height:2.5em}
 .pips{display:inline-flex;gap:2px;flex:none}.pips i{width:7px;height:7px;background:#000;border:1px solid var(--gold-d)}.pips i.on{background:var(--gold)}
 .gov,.army,.card,.fac{background:var(--panel2);border:2px solid #000;padding:6px;display:flex;gap:8px}
@@ -426,7 +435,7 @@ body.mob.tab #panel{--pw:min(42vw,480px)}
       <div id="hint"></div>
     </header>
     <div id="mid"><aside id="panel" class="box" hidden><div id="phead"></div><div id="pbody"></div></aside></div>
-    <div id="bottom"><div id="tut" hidden></div><div id="zoom" role="group" aria-label="Kartenansicht"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="home" title="Zur Hauptstadt" aria-label="Zur Hauptstadt">⌂</button></div><button id="endTurn" type="button">Saison beenden</button></div>
+    <div id="bottom"><div id="tut" hidden></div><div id="actBtns"><button type="button" id="marchBtn" hidden></button><button type="button" id="recBtn" hidden></button></div><div id="zoom" role="group" aria-label="Kartenansicht"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="home" title="Zur Hauptstadt" aria-label="Zur Hauptstadt">⌂</button></div><button id="endTurn" type="button">Saison beenden</button></div>
   </div>
 </div>
 <div id="modal" hidden><div id="sheet" class="box"></div></div>
@@ -3927,7 +3936,7 @@ function render(){if(!S)return;const f=S.facs[0],bal=project(f);
       :`${uIcon(bestType(a),0,22)}<span class="grow"><span class="hshort"><span class="g">Grün</span> ziehen · <span class="r">Rot</span> angreifen</span><span class="hlong"><b>Heer ausgewählt.</b> Klicke <span class="g">grün</span> zum Marschieren oder <span class="r">rot</span> zum Angreifen.${hostileVils(a.prov,0).length?' Rot markierte Dorfgebiete hier kannst du anklicken und <b>einnehmen</b>.':''} Zu einem eigenen Heer ziehen = vereinen.</span></span>${mb}<button type="button" class="btn" data-hint="peek">${ui.peek?'Fenster zu':'Fenster'}</button><button type="button" class="btn" data-hint="cancel">Abbrechen</button>`)
     :`<span class="grow">Klicke auf eine Provinz oder ein Heer.<span class="deskonly"> Karte ziehen zum Verschieben (auch zwei Finger auf dem Touchpad), Mausrad oder +/− zum Zoomen.</span></span>${ready.length?`<button type="button" class="btn" data-hint="next">${ic('swords',14)} Nächstes Heer (${ready.length})</button>`:''}`;
   if(open!==wasOpen&&ui.W)clampCam();
-  draw();tutRender();mobileUI();saveSoon();}
+  draw();tutRender();mobileUI();marchUI();saveSoon();}
 function listPanel(){return`<div class="plist">${owned(0).map(i=>{const p=S.provs[i],m=MAP.provs[i];
   return`<button type="button" class="prow" data-act="goto" data-i="${i}">${ic('t_'+m.terrain,24)}<span class="grow"><b>${esc(m.name)}${i===S.facs[0].cap?' '+ic('crown',12):''}</b><small>${fmt(p.pop[0]+p.pop[1]+p.pop[2])} Einwohner${S.armies.some(a=>a.owner===0&&a.prov===i)?' · Heer':''}</small></span><span class="mini ${p.unrest>50?'neg':''}">${ic('fire',14)}${fmt(p.unrest)}%</span></button>`;}).join('')}</div>
   <p class="note">Tipp: Grün umrandete Provinzen kannst du betreten, rote angreifen. Graue gehören niemandem.</p>`;}
@@ -4050,6 +4059,17 @@ $('#pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-a
 $('#endTurn').addEventListener('click',endTurn);
 const pinfo=e=>{const t=e.target.closest&&e.target.closest('.ct');const el=$('#pinfo');if(t&&el&&t.title)el.textContent=t.title;};
 $('#pbody').addEventListener('mouseover',pinfo);$('#pbody').addEventListener('focusin',pinfo);
+$('#marchBtn').addEventListener('click',()=>{if(!S||ui.busy)return;
+  if(moving()){ui.selArmy=null;ui.peek=false;render();return;}
+  const ready=S.armies.filter(x=>x.owner===0&&!x.moved&&x.units.length);if(!ready.length)return;
+  const here=ui.selProv!=null&&ready.find(a=>a.prov===ui.selProv),n=here||ready[0];
+  ui.selArmy=n.id;ui.selProv=n.prov;ui.peek=false;setTimeout(()=>centerOn(MAP.provs[n.prov].lx,MAP.provs[n.prov].ly),0);render();});
+$('#recBtn').addEventListener('click',()=>{if(!S||ui.busy)return;const i=ui.selProv!=null&&S.provs[ui.selProv].owner===0?ui.selProv:S.facs[0].cap;
+  ui.selArmy=null;ui.peek=false;ui.selProv=i;ui.tab='prov';ui.sub='army';if(i!==ui.selProv||true)setTimeout(()=>centerOn(MAP.provs[i].lx,MAP.provs[i].ly),0);render();});
+function marchUI(){{const r=$('#recBtn');if(r){r.hidden=!S||S.over||moving()||!owned(0).length;r.innerHTML=`${ic('b_barracks',22)}<span class="lbl">Rekrutieren</span>`;r.title='Rekrutieren';}}const b=$('#marchBtn');if(!b||!S)return;const ready=S.armies.filter(x=>x.owner===0&&!x.moved&&x.units.length);
+  if(moving()){b.hidden=false;b.className='cancel';b.innerHTML='✕<span class="lbl"> Abbrechen</span>';return;}
+  if(!ready.length||S.over){b.hidden=true;return;}const here=ui.selProv!=null&&ready.some(a=>a.prov===ui.selProv);
+  b.hidden=false;b.className='';b.innerHTML=`${ic('swords',22)}<span class="lbl">Marschieren${here||ready.length<2?'':` (${ready.length})`}</span>`;b.title='Marschieren';}
 $('#hint').addEventListener('click',e=>{const b=e.target.closest('[data-hint]');if(!b||ui.busy||!S)return;
   if(b.dataset.hint==='peek'){ui.peek=!ui.peek;render();return;}
   if(b.dataset.hint==='merge'){const a=S.armies.find(x=>x.id===ui.selArmy);if(a)mergeArmies(a.prov,0,a.id);render();autosave();return;}
