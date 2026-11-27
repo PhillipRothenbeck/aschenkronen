@@ -3467,10 +3467,10 @@ function makeRivers(lsd){const r=mulberry(MAP.seed*5+1),out=[],cand=[];
       if(!best)break;[px,py,dx0,dy0]=best;}
     if(path.length>14&&MAP.cell[py*GW+px]<0)out.push(path);}
   return out;}
-function buildHiRes(){_seat.clear();_layout.clear();const r=mulberry(MAP.seed*3+11),nA=makeNoise(r,40),nB=makeNoise(r,40),nC=makeNoise(r,40),nD=makeNoise(r,40),nE=makeNoise(r,40);
+function buildHiRes(){_seat.clear();_layout.clear();const r=mulberry(MAP.seed*3+11),nA=makeNoise(r,40),nB=makeNoise(r,40),nC=makeNoise(r,40),nD=makeNoise(r,40),nE=makeNoise(r,40),nF=CUR_MV>=3?makeNoise(r,70):null,nG=CUR_MV>=3?makeNoise(r,70):null;   // finer warp from map version 3: meandering borders
   const N=HW*HH,hp=new Int16Array(N),hq=new Int8Array(N),hs=new Float32Array(N),hr=new Float32Array(N);
   const sdf=chamfer(i=>MAP.cell[i]>=0),lsd=chamfer(i=>MAP.cell[i]<0);
-  const warp=(X,Y)=>{const u=X/HW*14,v=Y/HH*14;return[(nA(u,v)-.5)*3.2+(nC(u*2.7,v*2.7)-.5)*1.1,(nB(u,v)-.5)*3.2+(nD(u*2.7,v*2.7)-.5)*1.1];};
+  const warp=(X,Y)=>{const u=X/HW*14,v=Y/HH*14,f=nF?[(nF(u*4.5,v*4.5)-.5)*1.9,(nG(u*4.5,v*4.5)-.5)*1.9]:[0,0];return[(nA(u,v)-.5)*3.2+(nC(u*2.7,v*2.7)-.5)*1.1+f[0],(nB(u,v)-.5)*3.2+(nD(u*2.7,v*2.7)-.5)*1.1+f[1]];};
   const bil=(A,fx,fy)=>{const x0=clamp(Math.floor(fx),0,GW-1),y0=clamp(Math.floor(fy),0,GH-1),x1=Math.min(GW-1,x0+1),y1=Math.min(GH-1,y0+1),tx=clamp(fx-x0,0,1),ty=clamp(fy-y0,0,1);
     return(A[y0*GW+x0]*(1-tx)+A[y0*GW+x1]*tx)*(1-ty)+(A[y1*GW+x0]*(1-tx)+A[y1*GW+x1]*tx)*ty;};
   for(let Y=0;Y<HH;Y++)for(let X=0;X<HW;X++){const w=warp(X,Y),fx=(X+.5)/RS+w[0],fy=(Y+.5)/RS+w[1],i=Y*HW+X;
