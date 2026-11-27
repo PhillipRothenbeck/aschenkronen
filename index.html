@@ -475,8 +475,8 @@ const TERR={
 };
 const RACES={
   human:{n:'Großes Haus',u:{horde:'Bauernaufgebot',hcav:'Ordensritter',spear:'Pikeniere',sword:'Eidschwerter',bow:'Langbogenschützen',cav:'Vorreiter',siege:'Tribok',mage:'Kampfmagier',beast:'Drache'},lair:'Drachenhorst',title:['Fürst','Fürstin'],atk:1,def:1,cost:1,life:1,food:1,rout:10},
-  dwarf:{n:'Tiefenfeste',u:{elite:'Eisenbrecher',gun:'Donnerbüchsen',organ:'Orgelkanone',spear:'Schildträger',sword:'Axtwache',bow:'Armbrustschützen',cav:'Widderreiter',siege:'Bombarde',mage:'Runenschmied',beast:'Steingolem'},lair:'Golemschmiede',title:['Thain','Thain'],atk:1,def:1.2,cost:1.15,life:1.9,food:1,rout:8},
-  orc:{n:'Horde',u:{horde:'Goblinhaufen',elite:'Schwarzorks',hcav:'Keilerreiter',spear:'Gesindel',sword:'Verheerer',bow:'Steinwerfer',cav:'Wolfsreiter',siege:'Felsschleuder',mage:'Schamane',beast:'Kriegstroll'},lair:'Trollgrube',title:['Kriegsherr','Kriegsmutter'],atk:1.15,def:.9,cost:.8,life:.7,food:1.2,rout:15},
+  dwarf:{n:'Tiefenfeste',u:{elite:'Felsgarde',gun:'Hakenbüchsen',organ:'Salvengeschütz',spear:'Schildträger',sword:'Axtwache',bow:'Armbrustschützen',cav:'Bergreiter',siege:'Bombarde',mage:'Runenkundiger',beast:'Steingolem'},lair:'Golemschmiede',title:['Thain','Thain'],atk:1,def:1.2,cost:1.15,life:1.9,food:1,rout:8},
+  orc:{n:'Horde',u:{horde:'Goblinhaufen',elite:'Schädelgarde',hcav:'Keilerreiter',spear:'Gesindel',sword:'Verheerer',bow:'Steinwerfer',cav:'Wolfsreiter',siege:'Felsschleuder',mage:'Schamane',beast:'Kriegstroll'},lair:'Trollgrube',title:['Kriegsherr','Kriegsmutter'],atk:1.15,def:.9,cost:.8,life:.7,food:1.2,rout:15},
   undead:{n:'Hohler Hof',u:{horde:'Totenhorde',spear:'Skelettspeere',sword:'Schreckensklingen',bow:'Knochenschützen',cav:'Todesreiter',hcav:'Grabritter',siege:'Knochenkatapult',mage:'Nekromant',beast:'Grabwurm'},lair:'Beinhaus',title:['Lich','Lich'],atk:1,def:1,cost:1,life:0,food:0,rout:6},
   wild:{n:'Freie Lehen',u:{spear:'Miliz',sword:'Söldner',bow:'Jäger',cav:'Vorreiter',siege:'Katapult',mage:'Heckenhexe',beast:'Oger'},lair:'Grube',title:['Herr','Herrin'],atk:1,def:1,cost:1,life:1,food:1,rout:15},
 };
@@ -550,7 +550,7 @@ const isArty=t=>t==='siege'||t==='organ';
 const RACE_RULE={
  human:'Disziplin: Menschen fliehen erst unter 10 statt 15 Stärke. Die vielseitigste Armee: billige Bauern, schnelle Vorreiter, Ordensritter mit dem wuchtigsten Ansturm, Langbögen, Magier und Drachen.',
  dwarf:'Zäh und standhaft: Zwerge nehmen 15 % weniger Schaden und fliehen erst unter 8 Stärke. Keine Magier, keine Reiter. Dafür Magieresistenz (Zauber machen nur halben Schaden), die schwerste Rüstung und die beste Artillerie. Sehr langsam. Statt eines Zaubers: Kanonade, alle Geschütze feuern sofort.',
- orc:'Haben von allem etwas: Goblins, Gesindel, Schwarzorks, Wolfs- und Keilerreiter, Schamanen und Trolle. Billig und brutal, aber schlecht gepanzert. Keulen zerschmettern Knochen (+10 % gegen Untote), Trolle heilen sich.',
+ orc:'Haben von allem etwas: Goblins, Gesindel, Schädelgarde, Wolfs- und Keilerreiter, Schamanen und Trolle. Billig und brutal, aber schlecht gepanzert. Keulen zerschmettern Knochen (+10 % gegen Untote), Trolle heilen sich.',
  undead:'Massen billiger Toter, die nie fliehen, angeführt von Vampirrittern. Belagerungsgerät haben sie keines. Doch die Nekromanten halten die Fäden: Stirbt im Kampf der letzte Nekromant, zerfallen alle Toten. Ein Heer ohne Nekromanten kämpft 25 % schwächer und zerfällt auf der Karte jede Runde. Garnisonen hält die Stadt selbst zusammen.'};
 const BLD={
   farm:{n:'Gehöft',cost:{gold:30,timber:8}},
@@ -592,8 +592,8 @@ const SYL_A=['Ash','Bryn','Cal','Dun','El','Fen','Gal','Har','Ist','Kel','Lor','
 const SYL_B=['furt','see','wald','burg','tal','mark','heim','stedt','moor','au','hafen','fels','berg','bach','feld','ingen','hausen','wacht','grund','spitz','brück','horst','stein','hain','lohe','grab'];
 const NAMES={
   human:{m:['Alaric','Bertram','Corin','Dunstan','Edric','Falk','Godric','Hamon','Ivo','Jocelin','Leofric','Mathis','Odo','Piers','Roland','Tancred','Walter','Aymer','Gervase','Osric','Rainald','Cassian','Aurel'],f:['Adela','Beatrix','Cecily','Edith','Felice','Gisela','Hawise','Juliana','Liesel','Mabel','Nesta','Oriel','Petronel','Rohese','Sibyl','Theda','Ysolde','Agnes','Emma','Alys','Seren','Maelis']},
-  dwarf:{m:['Brokk','Durgan','Haldrek','Morgrim','Torvald','Ulfgar','Gundrek','Rurik','Kazrun','Bodvar','Hrothi','Skarn'],f:['Helga','Brunna','Sigrun','Dagny','Ingrid','Ragna','Thyra']},
-  orc:{m:['Grashnak','Ugrot','Murzag','Krull','Thrakka','Zogrim','Burzug','Nazgrul','Skarbak','Ghor'],f:['Shagra','Ruzga','Mogra','Yazga','Borka']},
+  dwarf:{m:['Brokk','Durgan','Haldrek','Mordrek','Torvald','Ulfgar','Gundrek','Rurik','Kazrun','Bodvar','Hrothi','Skarn'],f:['Helga','Brunna','Sigrun','Dagny','Ingrid','Ragna','Thyra']},
+  orc:{m:['Graznok','Ugrot','Murzag','Kragg','Drakka','Zogrim','Burzug','Durzag','Skarbak','Ghor'],f:['Shevka','Ruzga','Mogra','Yazga','Borka']},
   undead:{m:['Vaelor der Bleiche','Morthis der Ruhelose','Azrekh','Sorvane der Hohle','Ithric Grabgesang'],f:['Seraphel die Verdorrte','Nyxara','Maudra von den Hügelgräbern']},
 };
 const HOUSES=['Aubrec','Brannoc','Corvel','Dämmerfels','Estrell','Falkenau','Garrow','Harwick','Ivrel','Lanyon','Merrow','Norcott','Ormond','Pellam','Rabenholz','Stannard','Tallis','Ulvane','Verrick','Wexley','Aschgrab','Schwarzsee','Kaltwasser','Nachthafen'];
@@ -1074,7 +1074,7 @@ function bEffect(k,m,f){const T=TERR[m.terrain];switch(k){
   case'quarry':return`+${T.stone} Stein pro Stufe`;case'mine':return T.iron?`+${T.iron} Eisen pro Stufe`:'Hier gibt es kein Erz';
   case'loom':return`+${T.cloth} Tuch pro Stufe`;case'market':return'Bürgersteuern, lässt Bauern aufsteigen, +3 Gold je benachbartem Markt';
   case'manor':return'Lässt Bürger zu Adligen aufsteigen. +1 Ruhm pro Saison';case'shrine':return'Beruhigt die Unruhe, etwas Ruhm';
-  case'tower':return'+3 Mana pro Stufe. Schaltet Magier frei';case'barracks':return'Stufe 1: Schwertkämpfer. Stufe 2: Elite und Feuerwaffen. Jede Stufe: 10 % billigere Truppen, größere Garnison';case'stable':return'Stufe 1: leichte Reiter. Stufe 2: schwere Reiter';case'workshop':return'Stufe 1: Belagerungsgerät. Stufe 2: Orgelkanonen';
+  case'tower':return'+3 Mana pro Stufe. Schaltet Magier frei';case'barracks':return'Stufe 1: Schwertkämpfer. Stufe 2: Elite und Feuerwaffen. Jede Stufe: 10 % billigere Truppen, größere Garnison';case'stable':return'Stufe 1: leichte Reiter. Stufe 2: schwere Reiter';case'workshop':return'Stufe 1: Belagerungsgerät. Stufe 2: Salvengeschütze';
   case'lair':return`Züchtet: ${RACES[f?f.race:'human'].u.beast}. Nur einer pro Reich`;case'walls':return'Angreifer müssen belagern. +2 Garnison pro Stufe';}return'';}
 
 /* recruiting */
@@ -2400,7 +2400,7 @@ function dGreataxe(){const o=S(48,48);
   o.s(17,33,["7887","5665"]);o.s(27,22,["7887","5665"]);
   o.l(12,30,17,33,'6').l(12,31,17,34,'5');o.l(33,27,28,23,'6').l(34,27,29,23,'5');
   return o;}
-// Eisenbrecher: full helm with a gold beard-mask, tower shield, warhammer
+// Felsgarde: full helm with a gold beard-mask, tower shield, warhammer
 function dIron(){const o=S(48,48);
   dwarfBody(o,{helm:'mask',backArm:false});
   // warhammer raised in the right hand
@@ -2442,7 +2442,7 @@ function dXbow(){const o=S(48,48);
   o.s(33,23,["665","6655","5555"]);
   o.s(11,34,["5.5","mnn","mnn","mnn","mnn","ll."]);                       // bolt quiver at the hip
   return o;}
-// Donnerbüchsen: long handgun with gold bands, powder horn, a puff of smoke
+// Hakenbüchsen: long handgun with gold bands, powder horn, a puff of smoke
 function dGun(){const o=S(48,48);
   dwarfBody(o,{helm:'nasal',backArm:false});
   o.l(12,28,22,29,'6').l(12,29,22,30,'5').l(13,30,22,31,'4');   // far arm to the stock
@@ -2480,7 +2480,7 @@ function dBombard(){const o=S(64,48);
   o.s(52,10,[".kkk.","k...k",".kkk."]);                                                 // muzzle
   o.v(9,14,32,'m');o.s(10,8,["zZZzy","zZzyy","zzyy.","zy...","y...."]);                 // house banner on a pole
   return o;}
-// Orgelkanone: seven barrels in a rack, crank on the side
+// Salvengeschütz: seven barrels in a rack, crank on the side
 function dOrgan(){const o=S(64,48);
   o.s(6,33,["nNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNm","mnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnml","lmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmml"]);
   const wheel=(x,y)=>o.s(x,y,["...lmmml...","..mNNNNNm..",".mNnnnnnNm.","mNn.n.n.nNm","mNnnnqnnnNm","mNn.n.n.nNm",".mNnnnnnNm.","..mmmmmmm..","...lllll..."]);
@@ -2584,7 +2584,7 @@ function oRavager(){const o=S(48,48);   // Verheerer: arm down, the cleaver hang
   o.s(14,17,["{}}{","}||}","{}}{"]);o.s(31,17,["{}}{","}||}"]);
   o.p(20,26,'X').p(21,27,'X').p(22,26,'X');
   return o;}
-// Schwarzorks: black iron plates, horned helm, a jagged great axe
+// Schädelgarde: black iron plates, horned helm, a jagged great axe
 function oBlack(){const o=S(48,48);
   orcBody(o,{skin:['!','!','%','&'],frontArm:false});
   blob(o,13.5,19.5,5.4,4.6,IRON);blob(o,34.5,19.5,5.4,4.6,IRON);              // pauldrons
@@ -3664,7 +3664,7 @@ function tactical(A,D,ctx,ps){return modal((sheet,close)=>{
   const ABIL=[
     {k:'charge',key:'1',cd:16,icon:s=>uSpr(has(s,(U,t)=>t==='cav')?'cav':'sword',owner[s]),name:s=>CHARGE[race[s]],ok:s=>has(s,U=>!U.ranged),tip:()=>'Nahkämpfer stürmen 4 Sekunden lang doppelt so schnell und treffen 40 % härter.'},
     {k:'volley',key:'2',cd:11,icon:s=>uSpr('bow',owner[s]),name:s=>race[s]==='dwarf'?'Bolzenhagel':race[s]==='undead'?'Knochenhagel':'Salve',ok:s=>has(s,U=>U.ranged&&!U.arcane),tip:()=>'Alle Schützen feuern sofort mit 50 % mehr Schaden.'},
-    {k:'spell',key:'3',cd:18,icon:s=>uSpr(race[s]==='dwarf'?'organ':'mage',owner[s]),name:s=>race[s]==='dwarf'?'Kanonade':SPELL[race[s]][0],ok:s=>race[s]==='dwarf'?has(s,(U,t)=>isArty(t)):has(s,(U,t)=>t==='mage'),tip:s=>race[s]==='dwarf'?'Alle Geschütze feuern sofort mit 60 % mehr Schaden. Braucht Bombarden oder Orgelkanonen.':race[s]==='undead'?'Ruft die Toten zurück: alle eigenen Truppen heilen um 15. Braucht einen Nekromanten.':'Trifft alle Feinde in einem Gebiet, auch hinter Mauern. Braucht einen Magier.'},
+    {k:'spell',key:'3',cd:18,icon:s=>uSpr(race[s]==='dwarf'?'organ':'mage',owner[s]),name:s=>race[s]==='dwarf'?'Kanonade':SPELL[race[s]][0],ok:s=>race[s]==='dwarf'?has(s,(U,t)=>isArty(t)):has(s,(U,t)=>t==='mage'),tip:s=>race[s]==='dwarf'?'Alle Geschütze feuern sofort mit 60 % mehr Schaden. Braucht Bombarden oder Salvengeschütze.':race[s]==='undead'?'Ruft die Toten zurück: alle eigenen Truppen heilen um 15. Braucht einen Nekromanten.':'Trifft alle Feinde in einem Gebiet, auch hinter Mauern. Braucht einen Magier.'},
     {k:'wall',key:'4',cd:15,icon:s=>race[s]==='human'?'shield':'crest_'+race[s],name:s=>WALLN[race[s]],ok:s=>alive(s).length>0,tip:()=>'5 Sekunden lang bleiben deine Truppen stehen und nehmen 45 % weniger Schaden.'},
   ];
   const tipOf=(a,s)=>a.tip(s);
@@ -4289,7 +4289,7 @@ function mainMenu(){previewWorld();
         <button type="button" class="btn big" data-mm="load">${ic('scroll',20)} Speichercode laden</button>
         ${inGame?`<button type="button" class="btn big" data-mm="save">${ic('scroll',20)} Speichercode kopieren</button>`:''}
         <button type="button" class="btn big" data-mm="help">${ic('eye',20)} Spielanleitung</button></div>
-      <p class="sub mmfoot">Spielstände werden automatisch in diesem Browser gespeichert.</p>`;};
+      <p class="sub mmfoot">Spielstände werden automatisch in diesem Browser gespeichert.<br>Schrift: Pixelify Sans, SIL Open Font License 1.1 (<a href="fonts/OFL.txt" target="_blank" rel="noopener" style="color:inherit">Lizenz</a>). Alle Grafiken, Namen und Texte sind eigens für dieses Spiel entstanden.</p>`;};
     const card=(D,n)=>`<button type="button" class="racecard ${D.key===pickK?'on':''}" data-f="${D.key}" style="--c:${D.color}"><img class="px ux portrait" src="${portraitURL(n*41+11,D.race,{ruler:true,color:D.color})}" width="56" height="56" alt=""><span class="rc"><b>${esc(D.name)}</b><small>${esc(D.d)}</small><small class="rcr">${RACES[D.race].n}: ${RACE_SHORT[D.race]}</small>${FATE[D.key]?`<small class="rcr">Ziel: ${esc(FATE[D.key].w)}</small>`:''}<span class="rcu">${UNIT_ORDER.filter(t=>hasUnit(D.race,t)&&t!=='siege'&&t!=='organ').slice(0,7).map(t=>`<img class="px ux" src="${sprURL('u_'+t+'_'+D.race,{x:D.color})}" width="32" height="32" alt="${esc(RACES[D.race].u[t])}" title="${esc(RACES[D.race].u[t])}">`).join('')}</span></span></button>`;
     const pick=()=>{s.innerHTML=`<div class="mmhead"><button type="button" class="btn" data-mm="home">← Zurück</button><h2>Neues Spiel</h2></div>
       <h3>Wähle dein Reich</h3><div class="racegrid">${FACTIONS.map((D,n)=>card(D,n)).join('')}</div>
