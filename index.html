@@ -626,7 +626,9 @@ function makeNoise(r,n){const g=new Float32Array((n+1)*(n+1));for(let i=0;i<g.le
     const a=g[yi*w+xi],b=g[yi*w+xi+1],c=g[(yi+1)*w+xi],d=g[(yi+1)*w+xi+1];return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;};}
 function fbm(ns,x,y){return ns[0](x*4,y*4)*.55+ns[1](x*9,y*9)*.3+ns[2](x*19,y*19)*.15;}
 const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-function generateMap(seed,mv=1){  // mv: map version. Old saves keep version 1, new games use version 2 (natural coasts)
+let CUR_MV=1;   // map version of the map in use: older saves keep their own geography
+const atOf=D=>(CUR_MV>=3&&D.at3)||D.at;
+function generateMap(seed,mv=1){CUR_MV=mv;  // mv: map version. Old saves keep version 1, new games use version 2 (natural coasts)
   for(let att=0;att<40;att++){
     const r=mulberry(seed*31+att*7919+1);
     const N=()=>[makeNoise(r,20),makeNoise(r,20),makeNoise(r,20)];
@@ -696,11 +698,24 @@ function generateMap(seed,mv=1){  // mv: map version. Old saves keep version 1, 
     // terrain by region: mountains in the north, marsh in the east, hills in the south
     const ids=provs.map((_,i)=>i),terr=new Array(np).fill('plains');
     const cx=i=>provs[i].sx/provs[i].cells/GW,cy=i=>provs[i].sy/provs[i].cells/GH,el=i=>provs[i].el/provs[i].cells,mo=i=>provs[i].mo/provs[i].cells;
-    const ms=i=>(.3-cy(i))*2.4+el(i)*.7;
-    const byM=[...ids].sort((a,b)=>ms(b)-ms(a));
-    byM.slice(0,Math.round(np*.16)).forEach(i=>terr[i]='mountains');
-    byM.slice(Math.round(np*.16),Math.round(np*.25)).forEach(i=>terr[i]='hills');
-    ids.forEach(i=>{if(terr[i]!=='plains')return;if(cx(i)>.8&&cy(i)>.34&&cy(i)<.9)terr[i]='blight';else if(cy(i)>.76)terr[i]='hills';});
+    // version 3: three mountain ranges (the north-western chain, the southern ridge, a massif in the north)
+    const RIDGES=[[[.05,.05],[.18,.12],[.31,.21]],[[.33,.95],[.48,.87],[.63,.91]],[[.57,0],[.6,.08],[.62,.16]]];
+    const rdist=(x,y,P)=>{let b=9;for(let k=0;k<P.length-1;k++){const[ax,ay]=P[k],[bx,by]=P[k+1],dx=bx-ax,dy=by-ay,t2=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));b=Math.min(b,Math.hypot(x-ax-t2*dx,y-ay-t2*dy));}return b;};
+    const rd=i=>Math.min(...RIDGES.map(R=>rdist(cx(i),cy(i),R)));
+    const ms=mv>=3?i=>-rd(i)*6+el(i)*.5:i=>(.3-cy(i))*2.4+el(i)*.7;
+    if(mv>=3){
+      // natural ranges: every province a chain runs through is mountain, so chains stay unbroken;
+      // their neighbours become foothills, the highest first
+      const size=i=>Math.sqrt(provs[i].cells)/GW;
+      ids.filter(i=>RIDGES.some(R=>rdist(cx(i),cy(i),R)<.06+size(i)*.75)).sort((a,b)=>rd(a)-rd(b)).slice(0,Math.round(np*.22)).forEach(i=>terr[i]='mountains');
+      const foot=[...new Set(ids.filter(i=>terr[i]==='mountains').flatMap(i=>[...provs[i].adj]))].filter(i=>terr[i]==='plains').sort((a,b)=>el(b)-el(a));
+      foot.slice(0,Math.round(np*.13)).forEach(i=>terr[i]='hills');}
+    else{
+    const byM=[...ids].sort((a,b)=>ms(b)-ms(a)),cntM=Math.round(np*.16),cntH=Math.round(np*.25);
+    byM.slice(0,cntM).forEach(i=>terr[i]='mountains');
+    byM.slice(cntM,cntH).forEach(i=>terr[i]='hills');}
+    const orcHills=i=>mv>=3?(Math.hypot(cx(i)-.85,cy(i)-.12)<.15||Math.hypot(cx(i)-.76,cy(i)-.9)<.14):cy(i)>.76;
+    ids.forEach(i=>{if(terr[i]!=='plains')return;if(cx(i)>.8&&cy(i)>.34&&cy(i)<.9)terr[i]='blight';else if(orcHills(i))terr[i]='hills';});
     const rest=ids.filter(i=>terr[i]==='plains').sort((a,b)=>mo(b)-mo(a));
     rest.slice(0,Math.round(rest.length*.4)).forEach(i=>terr[i]='forest');
     const used=new Set();
@@ -785,7 +800,7 @@ const PN={
  orc:{on:['G','Gr','K','Kr','Sk','Sh','Z','M','B','Br','D','Dr','Ur','Ug','V','Th'],v:['a','u','o','û'],co:['g','k','zg','rk','sh','rz','b','t','gg','kh'],m:['','ak','ug','ash','nak','ub','orz'],f:['a','ga','ra','zha','ka','ush']},
 };
 function langPerson(race,female){const P=PN[race];for(let t=0;t<50;t++){const n=pick(P.on)+pick(P.v)+pick(P.co)+pick(female?P.f:P.m);if(!TOLKIEN.has(n.toLowerCase()))return n;}return pick(P.on)+'ak';}
-function langOf(m){let best=null,bd=1e9;for(const D of FACTIONS){const d=Math.hypot(m.lx/MW-D.at[0],(m.ly/MH-D.at[1])*.75);if(d<bd){bd=d;best=D;}}return best&&LANG[best.race]&&bd<.26?best.race:null;}
+function langOf(m){let best=null,bd=1e9;for(const D of FACTIONS){const d=Math.hypot(m.lx/MW-atOf(D)[0],(m.ly/MH-atOf(D)[1])*.75);if(d<bd){bd=d;best=D;}}return best&&LANG[best.race]&&bd<.26?best.race:null;}
 function fname(race,female){if(PN[race])return langPerson(race,female);const L=NAMES[race]||NAMES.human;return pick(female?L.f:L.m);}
 function mkChar(o){const c={id:S.nextId++,name:o.name||fname(o.race||'human',o.female),female:!!o.female,age:o.age||0,race:o.race||'human',
   mar:o.mar??ri(2,7),ste:o.ste??ri(2,7),int:o.int??ri(2,7),traits:o.traits||[],spouse:null,kids:[],alive:true,house:o.house,fac:o.fac};
@@ -803,7 +818,7 @@ function title(c,f){const race=RACES[f?f.race:'human'];return race.title[c.femal
 const WORLD_SEED=4711,WORLD_NAME='Aschland';
 /* MINOR REALMS: small lordships, clans and tribes in the gaps between the great realms. Same AI, far weaker. */
 const MINOR_COL=['#8a7f5a','#6e7d8f','#8f6a7a','#5f8a6a','#9a8a6a','#7a6a9a','#6a8a8a','#8a6a50','#70805a','#806070'];
-function minorDefs(){const cand=MAP.provs.filter(m=>m.adj.length>=2).map(m=>({m,d:Math.min(...FACTIONS.map(E=>Math.hypot(m.lx/MW-E.at[0],(m.ly/MH-E.at[1])*.75)))})).filter(x=>x.d>.13);
+function minorDefs(){const cand=MAP.provs.filter(m=>m.adj.length>=2).map(m=>({m,d:Math.min(...FACTIONS.map(E=>Math.hypot(m.lx/MW-atOf(E)[0],(m.ly/MH-atOf(E)[1])*.75)))})).filter(x=>x.d>.13);
   const out=[];while(out.length<15&&cand.length){cand.sort((a,b)=>Math.min(...out.map(o=>Math.hypot(b.m.lx-o.m.lx,b.m.ly-o.m.ly)),b.d*MW)-Math.min(...out.map(o=>Math.hypot(a.m.lx-o.m.lx,a.m.ly-o.m.ly)),a.d*MW));
     const c=cand.shift();out.push(c);}
   return out.map(({m},k)=>{const race=m.terrain==='mountains'?'dwarf':m.terrain==='blight'?'undead':(m.terrain==='hills'&&k%2)?'orc':'human';
@@ -814,8 +829,8 @@ const FACTIONS=[
  {key:'aubrec',race:'human',name:'Haus Aubrec',house:'Aubrec',color:'#d1a62a',at:[.14,.74],d:'Kaufmannsfürsten an der Westküste. Mehr Gold als Ehre.'},
  {key:'rabenholz',race:'human',name:'Haus Rabenholz',house:'Rabenholz',color:'#3f8f8a',at:[.58,.42],d:'Ein Grenzhaus zwischen allen Fronten, hart und misstrauisch.'},
  {key:'eisenhau',race:'dwarf',name:'Clan Rukbrakk',house:'Rukbrakk',color:'#5d8a9e',at:[.2,.08],d:'»Eisenhammer«. Die ältesten Hallen im Gebirge des Nordwestens.'},
- {key:'steinbart',race:'dwarf',name:'Clan Bârzun',house:'Bârzun',color:'#a0703a',at:[.62,.07],d:'»Steinsilber«. Bergleute und Schmiede im Gebirge des Nordostens.'},
- {key:'aschezahn',race:'orc',name:'Die Sharkrag-Horde',house:'Sharkrag',color:'#6f9a48',at:[.42,.92],d:'»Aschefang«. Die größte Horde des Südens, immer hungrig nach Land.'},
+ {key:'steinbart',race:'dwarf',name:'Clan Bârzun',house:'Bârzun',color:'#a0703a',at:[.62,.07],at3:[.48,.88],d:'»Steinsilber«. Bergleute und Schmiede im Südkamm jenseits des Aschemeers.'},
+ {key:'aschezahn',race:'orc',name:'Die Sharkrag-Horde',house:'Sharkrag',color:'#6f9a48',at:[.42,.92],at3:[.85,.12],d:'»Aschefang«. Die größte Horde der nördlichen Hügel, immer hungrig nach Land.'},
  {key:'blutfaust',race:'orc',name:'Die Zarggruk-Horde',house:'Zarggruk',color:'#9c4a2a',at:[.76,.9],d:'»Blutfaust«. Wilde Plünderer in den Hügeln des Südostens.'},
  {key:'zehngraeber',race:'undead',name:'Der Hof der Zehn Gräber',house:'Zehn Gräber',color:'#8d6fb3',at:[.9,.6],d:'Im östlichen Sumpf wartet ein Lich auf die Lebenden.'},
 ];
@@ -846,7 +861,7 @@ const upTxt=o=>Object.entries(o).filter(([,v])=>v>=.05).map(([k,v])=>`${(Math.ro
    HOMELANDS: the provinces nearest a faction's ancestral seat. Every AI wants them first.
    ============================================================ */
 function homeland(id){const f=S.facs[id];if(!f)return[];if(f.hl)return f.hl;const D=FACTIONS.find(x=>x.key===f.key),c=MAP.provs[f.cap];
-  const nearest=m=>{let b=null,bd=1e9;for(const E of FACTIONS){const d=Math.hypot(m.lx/MW-E.at[0],(m.ly/MH-E.at[1])*.75);if(d<bd){bd=d;b=E;}}return b;};
+  const nearest=m=>{let b=null,bd=1e9;for(const E of FACTIONS){const d=Math.hypot(m.lx/MW-atOf(E)[0],(m.ly/MH-atOf(E)[1])*.75);if(d<bd){bd=d;b=E;}}return b;};
   const cand=MAP.provs.filter(m=>m.id!==f.cap&&nearest(m)===D).map(m=>[m.id,Math.hypot((m.lx-c.lx)/MW,(m.ly-c.ly)/MH*.75)]).sort((a,b)=>a[1]-b[1]);
   // grow outward from the seat so the homeland stays connected
   const hl=[f.cap];for(let pass=0;pass<6&&hl.length<6;pass++)for(const[id2,d]of cand){if(hl.length>=6||hl.includes(id2)||d>.26)continue;if(MAP.provs[id2].adj.some(a=>hl.includes(a)))hl.push(id2);}
@@ -857,8 +872,8 @@ const RACE_SHORT={human:'Diszipliniert · Ordensritter · Drachen',dwarf:'Zäh (
 for(const r in RACE_RULE)if(ECON[r])RACE_RULE[r]+=' Wirtschaft – '+ECON[r].n+': '+ECON[r].bonus;
 for(const r in RACE_SHORT)if(ECON[r])RACE_SHORT[r]+=' · Wirtschaft: '+ECON[r].n;
 function newGame(facKey,diff=1){
-  MAP=generateMap(WORLD_SEED,2);
-  S={v:4,mapv:2,seed:WORLD_SEED,turn:0,startYear:612,nextId:1,provs:[],facs:[],chars:{},armies:[],rel:{},log:[],over:false,pending:[],tribs:[],imp:[]};
+  MAP=generateMap(WORLD_SEED,3);
+  S={v:4,mapv:3,seed:WORLD_SEED,turn:0,startYear:612,nextId:1,provs:[],facs:[],chars:{},armies:[],rel:{},log:[],over:false,pending:[],tribs:[],imp:[]};
   const np=MAP.provs.length;
   for(let i=0;i<np;i++){const m=MAP.provs[i],T=TERR[m.terrain];
     const pe=Math.round(T.cap*(.18+R()*.22)),bu=ri(0,20);
@@ -870,8 +885,8 @@ function newGame(facKey,diff=1){
   order.forEach((D,k)=>{const race=D.race;
     const want={human:['plains','forest','hills'],dwarf:['mountains','hills'],orc:['hills','plains','forest'],undead:['blight','forest','plains']}[race];
     let cap=-1,bd=1e9;for(const m of MAP.provs){if(taken.has(m.id)||m.adj.some(a=>taken.has(a)))continue;
-      const d=Math.hypot(m.lx/MW-D.at[0],(m.ly/MH-D.at[1])*.75)+(want.includes(m.terrain)?0:.05)+(m.adj.length<2?.1:0);if(d<bd){bd=d;cap=m.id;}}
-    if(cap<0)for(const m of MAP.provs){if(taken.has(m.id))continue;const d=Math.hypot(m.lx/MW-D.at[0],(m.ly/MH-D.at[1])*.75);if(d<bd){bd=d;cap=m.id;}}
+      const d=Math.hypot(m.lx/MW-atOf(D)[0],(m.ly/MH-atOf(D)[1])*.75)+(want.includes(m.terrain)?0:.05)+(m.adj.length<2?.1:0);if(d<bd){bd=d;cap=m.id;}}
+    if(cap<0)for(const m of MAP.provs){if(taken.has(m.id))continue;const d=Math.hypot(m.lx/MW-atOf(D)[0],(m.ly/MH-atOf(D)[1])*.75);if(d<bd){bd=d;cap=m.id;}}
     if(D.minor){const nn=MAP.provs[cap].name;D.name=D.name.replace(D.house,nn);D.house=nn;}
     taken.add(cap);
     if(race==='dwarf')MAP.provs[cap].terrain='mountains';else if(race==='undead')MAP.provs[cap].terrain='blight';
@@ -4335,7 +4350,7 @@ const STORY={
   {t:'Das Handelsimperium',x:'Häufe 3.000 Gold an und halte drei Handelsposten. Dann schuldet dir jeder Thron im Land.',g:{k:'fate'}}]},
  rabenholz:{n:'Die Raben an der Grenze',ch:[
   {t:'Die Wachtürme besetzen',x:'Rabenholz hält die Grenze seit dreihundert Jahren. Doch die Hälfte der alten Wachtürme steht leer. Sichere dein Heimatland.',g:{k:'home'},r:{prestige:20,unit:'spear'}},
-  {t:'Die Wacht von {A}',x:'{A} liegt auf dem Weg jeder Horde, die aus dem Süden kommt. Gewinne die Herren dort als Verbündete oder setze einen eigenen Hauptmann ein.',g:{k:'win',m:0},r:{gold:150,prestige:20}},
+  {t:'Die Wacht von {A}',x:'{A} liegt auf dem Weg der Horden, ob sie aus den nördlichen Hügeln oder aus dem Süden kommen. Gewinne die Herren dort als Verbündete oder setze einen eigenen Hauptmann ein.',g:{k:'win',m:0},r:{gold:150,prestige:20}},
   {t:'Feuer im Osten',x:'Aus {B} kommen Gerüchte über Leichenfeuer und verschwundene Dörfer. Reite hin und stelle Ordnung her.',g:{k:'take',m:1},r:{unit:'hcav',prestige:30}},
   {t:'Die Finsternis brechen',x:'Vernichte eine der Orkhorden oder den Hof der Zehn Gräber. Dann ist die Grenze für eine Generation sicher.',g:{k:'fate'}}]},
  eisenhau:{n:'Die Hallen der Ahnen',ch:[
@@ -4350,7 +4365,7 @@ const STORY={
   {t:'Das Herz des Berges',x:'Acht Minen und 1.500 Eisen. Dann trägt jede Klinge im Land euer Zeichen.',g:{k:'fate'}}]},
  aschezahn:{n:'Der große Hunger',ch:[
   {t:'Das Erwachen',x:'Die Sharkrag-Horde ist hungrig, und hungrige Orks fressen sich selbst. Gib ihnen etwas zu tun: Nimm {A}.',g:{k:'take',m:0},r:{grain:150,prestige:15}},
-  {t:'Die Stämme einen',x:'Die Clans des Südens gehorchen nur dem Stärksten. Erobere dein ganzes Heimatland, und sie folgen dir.',g:{k:'home'},r:{unit:'hcav',gold:100}},
+  {t:'Die Stämme einen',x:'Die Clans der nördlichen Hügel gehorchen nur dem Stärksten. Erobere dein ganzes Heimatland, und sie folgen dir.',g:{k:'home'},r:{unit:'hcav',gold:100}},
   {t:'Die Unterwerfung von {B}',x:'{B} hat deine Boten erschlagen. Dafür gibt es nur eine Antwort.',g:{k:'take',m:1},r:{prestige:30,grain:200}},
   {t:'Satt für eine Weile',x:'Halte 35 % aller Provinzen. Dann brennen eure Feuer vom Sumpf bis zu den Bergen.',g:{k:'fate'}}]},
  blutfaust:{n:'Die blutige Ernte',ch:[
