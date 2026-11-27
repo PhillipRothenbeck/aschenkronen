@@ -3465,10 +3465,13 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
       if(!ok||(Math.abs(x-lx)<9&&Math.abs(y-ly)<7))continue;{const wd=MAP.warp(x*RS,y*RS);stamp(bctx,st,Math.round((x-wd[0])*RS),Math.round((y-wd[1])*RS),2);}placed++;}}
   for(let i=0;i<np;i++){const m=MAP.provs[i],p=S.provs[i],o=p.owner,col=o<0?'#9a8f80':colorOf(o);
     {const st=CITY_ST[o<0?'wild':raceOf(o)],t=o<0?1:cityTier(p),L=townLayout(i,t,lvl(p,'walls')),cx=L.cx*RS,cy=L.cy*RS;
-     if(L.wall){const pts=L.wall.pts;for(const[wx,wy,ok]of pts){if(!ok)continue;const X=Math.round(wx*RS),Y=Math.round(wy*RS);bctx.fillStyle='#16141c';bctx.fillRect(X-2,Y-2,4,4);bctx.fillStyle='#8e887a';bctx.fillRect(X-1,Y-1,2,2);}
-       for(const[wx,wy]of L.wall.towers){const X=Math.round(wx*RS),Y=Math.round(wy*RS);bctx.fillStyle='#16141c';bctx.fillRect(X-3,Y-6,6,8);bctx.fillStyle='#a49e90';bctx.fillRect(X-2,Y-5,4,6);bctx.fillStyle='#16141c';bctx.fillRect(X-1,Y-5,1,1);}}
-     L.houses.forEach(([hx,hy],j)=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2));
-     stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}
+     // back wall, then houses and castle from back to front, then the front wall
+     const midY=(L.cy-1.5*2/RS)*RS,parts=L.wall?wallColumns(L.wall):null;
+     if(parts)drawWall(bctx,parts.back,parts.towersBack,L.wall.wl,true);
+     const items=L.houses.map(([hx,hy],j)=>({y:Math.round(hy*RS),f:()=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2)}));
+     items.push({y:Math.round(cy),f:()=>stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2)});
+     items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
+     if(parts)drawWall(bctx,parts.front,parts.towersFront,L.wall.wl,false);}
     (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)+.5)*RS)-3,Math.round(((v.wy??v.y)+2)*RS)-6,p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
   ui.dirtyBase=false;}
 function moveTargets(){const a=ui.selArmy&&S.armies.find(x=>x.id===ui.selArmy);if(!a||a.moved||a.owner!==0)return new Map();
@@ -3606,6 +3609,18 @@ cv.addEventListener('click',async e=>{if(!S||ui.busy||ui.dragged)return;
   if(ui.selProv!==h.prov)ui.sub='info';ui.selProv=h.prov;ui.tab='prov';render();});
 /* TOWN GROWTH ON THE MAP: houses and a ring wall around the castle, painted at high resolution and drawn live.
    Spots are chosen per province so nothing covers villages, water, the castle or the neighbours' land. */
+/* ring walls drawn like the houses: pixel columns with an outline, a light crenellated top and a stone face */
+function wallColumns(W){const cols=new Map(),pts=W.pts;let cyc=0;for(const q of pts)cyc+=q[1];cyc/=pts.length;
+  for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1];if(!a[2]||!b[2])continue;const ax=a[0]*RS,ay=a[1]*RS,bx=b[0]*RS,by=b[1]*RS,n=Math.max(1,Math.ceil(Math.hypot(bx-ax,by-ay)*2));
+    for(let u=0;u<=n;u++){const X=Math.round(ax+(bx-ax)*u/n),Y=Math.round(ay+(by-ay)*u/n);cols.set(X+','+Y,{X,Y,back:Y<cyc*RS});}}
+  const all=[...cols.values()].sort((a,b)=>a.Y-b.Y),tw=W.towers.map(([x,y])=>({X:Math.round(x*RS),Y:Math.round(y*RS),back:y<cyc}));
+  return{back:all.filter(c=>c.back),front:all.filter(c=>!c.back),towersBack:tw.filter(t=>t.back),towersFront:tw.filter(t=>!t.back)};}
+function drawWall(c,cols,towers,wl,back){const H=4+Math.min(3,wl),face=back?'#5e5a52':'#8e887a',top=back?'#9a958a':'#cfc9ba',dark='#16141c';
+  c.fillStyle=dark;for(const{X,Y}of cols)c.fillRect(X-1,Y-H-1,3,H+2);            // outline
+  c.fillStyle=face;for(const{X,Y}of cols)c.fillRect(X,Y-H+1,1,H-1);               // stone face
+  for(const{X,Y}of cols){if(X%3===0){c.fillStyle=dark;c.fillRect(X,Y-H,1,1);}else{c.fillStyle=top;c.fillRect(X,Y-H,1,1);}}   // crown with crenels
+  for(const{X,Y}of towers.sort((a,b)=>a.Y-b.Y)){const TH=H+5;c.fillStyle=dark;c.fillRect(X-3,Y-TH-2,7,TH+3);c.fillStyle=back?'#6e6a60':'#9e988a';c.fillRect(X-2,Y-TH,5,TH);
+    c.fillStyle=back?'#a8a296':'#ddd7c8';c.fillRect(X-2,Y-TH,5,1);c.fillStyle=dark;c.fillRect(X-1,Y-TH-2,1,1);c.fillRect(X+1,Y-TH-2,1,1);c.fillRect(X,Y-TH+3,1,2);}}
 const _layout=new Map();
 function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))return _layout.get(key);
   const m=MAP.provs[i],F=2/RS,cx=Math.round(m.lx/CS)-5.5,cy=Math.round(m.ly/CS)+1,vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
@@ -3622,7 +3637,7 @@ function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))retur
   const mh=houses.length?Math.max(...houses.map(([x,y])=>Math.hypot(x-cx,(y-cy)/.62))):0,Rw=Math.min(Math.max(mh+2.6*F,9*F),vilR-2.6*F);
   if(wl>=1&&Rw>=7*F){const R=Rw,pts=[];
     for(let a=0;a<=6.3;a+=.06){const x=cx+Math.cos(a)*R,y=cy-1.5*F+Math.sin(a)*R*.62;pts.push([x,y,own(x,y)&&vils.every(([vx,vy])=>Math.hypot(x-vx,y-vy)>=4.2*F)]);}
-    const step=Math.max(6,15-wl*3);wall={pts,towers:pts.filter((q,j)=>j%step===0&&q[2]),wl};}
+    const nT=[0,4,6,8][Math.min(3,wl)],step=Math.max(1,Math.floor(pts.length/nT));wall={pts,towers:pts.filter((q,j)=>j%step===Math.floor(step/2)&&q[2]),wl};}
   const L={houses:wall?houses.filter(([x,y])=>Math.hypot(x-cx,(y-cy)/.62)<=Rw-1.6*F):houses,wall,cx,cy};_layout.set(key,L);return L;}
 const ARMY_MAX=12;
 function mergeArmies(pi,owner,keepId){const list=S.armies.filter(a=>a.prov===pi&&a.owner===owner);if(list.length<2)return null;
