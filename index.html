@@ -3513,11 +3513,11 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
     {const st=CITY_ST[o<0?'wild':raceOf(o)],t=o<0?1:cityTier(p),L=townLayout(i,t,lvl(p,'walls')),cx=L.cx*RS,cy=L.cy*RS;
      // back wall, then houses and castle from back to front, then the front wall
      const midY=(L.cy-1.5*2/RS)*RS,parts=L.wall?wallColumns(L.wall):null;
-     if(parts)drawWall(bctx,parts.back,parts.towersBack,L.wall.wl,true);
+     if(parts)drawWall(bctx,parts.back,parts.towersBack,L.wall.wl,true,o<0?'wild':raceOf(o));
      const items=L.houses.map(([hx,hy],j)=>({y:Math.round(hy*RS),f:()=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2)}));
      items.push({y:Math.round(cy),f:()=>{if(true){const art=settleCanvas(fortKey(o<0?'wild':raceOf(o),t),col);bctx.drawImage(art,Math.round(cx-art.width/2),Math.round(cy-art.height+2));}else stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}});
      items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
-     if(parts)drawWall(bctx,parts.front,parts.towersFront,L.wall.wl,false);}
+     if(parts)drawWall(bctx,parts.front,parts.towersFront,L.wall.wl,false,o<0?'wild':raceOf(o));}
     (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)+.5)*RS)-3,Math.round(((v.wy??v.y)+2)*RS)-6,p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
   ui.dirtyBase=false;}
 function moveTargets(){const a=ui.selArmy&&S.armies.find(x=>x.id===ui.selArmy);if(!a||a.moved||a.owner!==0)return new Map();
@@ -3661,13 +3661,33 @@ function wallColumns(W){const cols=new Map(),pts=W.pts;let cyc=0;for(const q of 
     for(let u=0;u<=n;u++){const X=Math.round(ax+(bx-ax)*u/n),Y=Math.round(ay+(by-ay)*u/n);cols.set(X+','+Y,{X,Y,back:Y<cyc*RS});}}
   const all=[...cols.values()].sort((a,b)=>a.Y-b.Y),tw=W.towers.map(([x,y])=>({X:Math.round(x*RS),Y:Math.round(y*RS),back:y<cyc}));
   return{back:all.filter(c=>c.back),front:all.filter(c=>!c.back),towersBack:tw.filter(t=>t.back),towersFront:tw.filter(t=>!t.back)};}
-function drawWall(c,cols,towers,wl,back){const H=4+Math.min(3,wl),face=back?'#5e5a52':'#8e887a',top=back?'#9a958a':'#cfc9ba',dark='#16141c';
+/* wall styles per people: [outline, face, crown, face (back side), crown (back side), extra height, crown style] */
+const WALL_STYLE={
+  human:{face:'#8e887a',top:'#cfc9ba',faceB:'#5e5a52',topB:'#9a958a',dh:0,crown:'crenels'},
+  wild:{face:'#8e887a',top:'#cfc9ba',faceB:'#5e5a52',topB:'#9a958a',dh:0,crown:'crenels'},
+  dwarf:{face:'#6e737c',top:'#a8adb6',faceB:'#4a4e56',topB:'#7a7f88',dh:1,crown:'flat',band:'#c9a352'},
+  orc:{face:'#6a4a2a',top:'#8e6a40',faceB:'#4a3220',topB:'#6a4e30',dh:1,crown:'stakes'},
+  undead:{face:'#4a4058',top:'#6e6284',faceB:'#2e283a',topB:'#4a4058',dh:1,crown:'spikes',glow:'#4fb27c'}};
+function drawWall(c,cols,towers,wl,back,race='human'){const Sx=WALL_STYLE[race]||WALL_STYLE.human,H=4+Math.min(3,wl)+Sx.dh,face=back?Sx.faceB:Sx.face,top=back?Sx.topB:Sx.top,dark='#16141c';
   const pass=arr=>{if(!arr.length)return;
     c.fillStyle=dark;for(const{X,Y}of arr)c.fillRect(X-1,Y-H-1,3,H+2);            // outline
-    c.fillStyle=face;for(const{X,Y}of arr)c.fillRect(X,Y-H+1,1,H-1);               // stone face
-    for(const{X,Y}of arr){c.fillStyle=X%3===0?dark:top;c.fillRect(X,Y-H,1,1);}};   // crown with crenels
-  const tower=({X,Y})=>{const TH=H+5;c.fillStyle=dark;c.fillRect(X-3,Y-TH-2,7,TH+3);c.fillStyle=back?'#6e6a60':'#9e988a';c.fillRect(X-2,Y-TH,5,TH);
-    c.fillStyle=back?'#a8a296':'#ddd7c8';c.fillRect(X-2,Y-TH,5,1);c.fillStyle=dark;c.fillRect(X-1,Y-TH-2,1,1);c.fillRect(X+1,Y-TH-2,1,1);c.fillRect(X,Y-TH+3,1,2);};
+    c.fillStyle=face;for(const{X,Y}of arr)c.fillRect(X,Y-H+1,1,H-1);               // face
+    if(race==='orc'){c.fillStyle=dark;for(const{X,Y}of arr)if(X%2===0)c.fillRect(X,Y-H+1,1,H-1);c.fillStyle=face;for(const{X,Y}of arr)if(X%2===0)c.fillRect(X,Y-H+2,1,H-3);}   // single logs
+    if(Sx.band){c.fillStyle=Sx.band;for(const{X,Y}of arr)c.fillRect(X,Y-H+3,1,1);}                        // dwarven gold band
+    for(const{X,Y}of arr){                                                         // crown
+      if(Sx.crown==='crenels'){c.fillStyle=X%3===0?dark:top;c.fillRect(X,Y-H,1,1);}
+      else if(Sx.crown==='flat'){c.fillStyle=top;c.fillRect(X,Y-H,1,1);}
+      else if(Sx.crown==='stakes'){c.fillStyle=top;c.fillRect(X,Y-H,1,1);if(X%2===0){c.fillStyle=dark;c.fillRect(X,Y-H-2,1,1);c.fillStyle=top;c.fillRect(X,Y-H-1,1,1);}}
+      else{c.fillStyle=top;c.fillRect(X,Y-H,1,1);if(X%3===0){c.fillStyle=dark;c.fillRect(X,Y-H-2,1,1);c.fillStyle=face;c.fillRect(X,Y-H-1,1,1);}}}};
+  const tower=({X,Y})=>{
+    if(race==='dwarf'){const TH=H+3;c.fillStyle=dark;c.fillRect(X-4,Y-TH-1,9,TH+2);c.fillStyle=back?Sx.faceB:Sx.face;c.fillRect(X-3,Y-TH,7,TH);c.fillStyle=back?Sx.topB:Sx.top;c.fillRect(X-3,Y-TH,7,1);
+      c.fillStyle=Sx.band;c.fillRect(X-3,Y-TH+3,7,1);c.fillStyle='#3f8fd8';c.fillRect(X,Y-TH+5,1,2);}
+    else if(race==='orc'){const TH=H+6;c.fillStyle=dark;c.fillRect(X-2,Y-TH,5,TH+1);c.fillStyle=back?Sx.faceB:Sx.face;c.fillRect(X-1,Y-TH+3,1,TH-3);c.fillRect(X+1,Y-TH+3,1,TH-3);
+      c.fillStyle=dark;c.fillRect(X-3,Y-TH-1,7,3);c.fillStyle=back?Sx.topB:Sx.top;c.fillRect(X-2,Y-TH,5,1);if((X+Y)%3===0){c.fillStyle='#bdb497';c.fillRect(X,Y-TH-3,1,2);}}
+    else if(race==='undead'){const TH=H+8;c.fillStyle=dark;c.fillRect(X-2,Y-TH+2,5,TH-1);c.fillRect(X-1,Y-TH,3,2);c.fillRect(X,Y-TH-2,1,2);
+      c.fillStyle=back?Sx.faceB:Sx.face;c.fillRect(X-1,Y-TH+3,3,TH-3);c.fillRect(X,Y-TH,1,3);c.fillStyle=Sx.glow;c.fillRect(X,Y-TH+5,1,2);}
+    else{const TH=H+5;c.fillStyle=dark;c.fillRect(X-3,Y-TH-2,7,TH+3);c.fillStyle=back?'#6e6a60':'#9e988a';c.fillRect(X-2,Y-TH,5,TH);
+      c.fillStyle=back?'#a8a296':'#ddd7c8';c.fillRect(X-2,Y-TH,5,1);c.fillStyle=dark;c.fillRect(X-1,Y-TH-2,1,1);c.fillRect(X+1,Y-TH-2,1,1);c.fillRect(X,Y-TH+3,1,2);}};
   // painter's order: wall pieces and towers together from back (small Y) to front (large Y)
   const sorted=cols.slice().sort((a,b)=>a.Y-b.Y),tw=towers.slice().sort((a,b)=>a.Y-b.Y);let start=0;
   for(const t of tw){let end=start;while(end<sorted.length&&sorted[end].Y<=t.Y)end++;pass(sorted.slice(start,end));start=end;tower(t);}
