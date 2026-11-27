@@ -3204,21 +3204,48 @@ const settleArt=new Map();
 /* the fortress in the middle of a town grows with its tier: a wall, corner towers and a keep, in each people's style */
 const FORT_W=[13,15,19,23,27],FORT_H=[11,13,16,19,22];
 function fortKey(race,t){const key='fort|'+race+'|'+t;if(SETTLE_GRID[key])return key;
-  const W=FORT_W[t-1],H=FORT_H[t-1],g=Array.from({length:H},()=>Array(W).fill('.')),put=(x,y,ch)=>{if(x>=0&&x<W&&y>=0&&y<H)g[y][x]=ch;};
-  const wood=race==='orc',Lc=wood?'b':'s',Dc=wood?'B':'S',Ec=wood?'B':'d';
-  const block=(x0,w,top,crown)=>{for(let y=top;y<H;y++)for(let x=x0;x<x0+w;x++)put(x,y,x===x0?Dc:x===x0+w-1?Ec:((x*7+y*3)%11===0?Dc:Lc));
-    for(let x=x0;x<x0+w;x++){const k=x-x0;if(crown==='spikes'){if(k%2===0)put(x,top-1,Ec);if(k%4===0)put(x,top-2,Ec);}else if(k%2===0)put(x,top-1,Lc);}};
-  const crown=race==='undead'||wood?'spikes':'crenels',tw=Math.max(3,Math.round(W*.2)),kw=Math.max(5,Math.round(W*.34))|1;
-  const wallTop=Math.round(H*.56),towerTop=Math.round(H*.33)+1,keepTop=3,kx=(W-kw)>>1,mid=kx+(kw>>1);
-  block(0,W,wallTop,crown);if(t>=3){block(0,tw,towerTop,crown);block(W-tw,tw,towerTop,crown);}block(kx,kw,keepTop+(t>=4?0:2),crown);
-  const win=race==='undead'||race==='dwarf'?'g':'k';
-  for(let y=keepTop+3;y<wallTop-1;y+=3)put(mid,y,win);if(t>=3){put(tw>>1,towerTop+2,win);put(W-1-(tw>>1),towerTop+2,win);}
-  for(let y=H-3;y<H;y++)for(let x=mid-1;x<=mid+1;x++)put(x,y,'k');put(mid,H-4,'k');
-  if(race==='dwarf')for(let x=0;x<W;x++)if(g[wallTop+1][x]!=='.'&&g[wallTop+1][x]!=='k')put(x,wallTop+1,'y');
-  if(wood)put(mid,(t>=4?keepTop:keepTop+2)-2,'o');
-  if(t>=4){put(mid,1,'b');put(mid,0,'x');put(mid+1,0,'X');}
-  if(t>=3&&(race==='human'||race==='wild'))for(const fx of[tw>>1,W-1-(tw>>1)]){put(fx,towerTop-2,'b');put(fx,towerTop-3,'x');put(fx+1,towerTop-3,'X');}
-  for(let x=0;x<W;x++)if(g[H-1][x]!=='.'&&g[H-1][x]!=='k')put(x,H-1,Ec);
+  const W=FORT_W[t-1],H=FORT_H[t-1],g=Array.from({length:H},()=>Array(W).fill('.')),mid=W>>1;
+  const put=(x,y,c)=>{x=Math.round(x);y=Math.round(y);if(x>=0&&x<W&&y>=0&&y<H)g[y][x]=c;};
+  const rect=(x0,y0,w,h,L,D,E)=>{for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++)put(x,y,x===x0?D:x===x0+w-1?(E||D):((x*7+y*3)%11===0?D:L));};
+  const crenel=(x0,y0,w,c)=>{for(let x=x0;x<x0+w;x+=2)put(x,y0-1,c);};
+  const spikes=(x0,y0,w,c)=>{for(let x=x0;x<x0+w;x++){const k=x-x0;if(k%2===0)put(x,y0-1,c);if(k%4===0)put(x,y0-2,c);}};
+  const roof=(cx,base,half,L,D)=>{for(let r=0;r<=half;r++)for(let x=cx-half+r;x<=cx+half-r;x++)put(x,base-r,x<cx?L:D);};
+  const spire=(cx,base,h,L,D)=>{for(let r=0;r<h;r++){const hw=Math.round((h-r)/h*1.4);for(let x=cx-hw;x<=cx+hw;x++)put(x,base-r,x<cx?L:D);}};
+  const gate=(cx,h,c='k')=>{for(let y=H-h;y<H;y++)for(let x=cx-1;x<=cx+1;x++)put(x,y,c);put(cx,H-h-1,c);};
+  const flag=(x,y)=>{put(x,y+1,'b');put(x,y+2,'b');put(x,y,'x');put(x+1,y,'X');put(x+1,y+1,'x');};
+  if(race==='dwarf'){                                  // a hall carved into a mountain
+    const peak=t>=4?0:2;for(let y=peak;y<H;y++){const hw=Math.round((y-peak+1)*(W/2)/(H-peak));for(let x=mid-hw;x<=mid+hw;x++)put(x,y,x<mid?'n':'N');}
+    if(t>=5)for(let y=peak;y<peak+3;y++){const hw=Math.round((y-peak+1)*(W/2)/(H-peak));for(let x=mid-hw;x<=mid+hw;x++)put(x,y,'w');}
+    const fTop=Math.round(H*.5);if(t>=2){rect(2,fTop,W-4,H-fTop,'s','S','d');for(let x=2;x<W-2;x+=2)put(x,fTop-1,'s');
+    for(let x=3;x<W-3;x++)put(x,fTop+1,'y');}if(t>=4)for(let x=3;x<W-3;x++)put(x,H-3,'y');
+    if(t>=3)for(const bx of[0,W-4]){rect(bx,fTop-3,4,H-fTop+3,'s','S','d');put(bx,fTop-4,'s');put(bx+2,fTop-4,'s');}
+    const gh=Math.max(3,Math.round(H*.3));gate(mid,gh);put(mid-1,H-gh-1,'y');put(mid+1,H-gh-1,'y');
+    for(const x of t>=4?[mid-4,mid+4,mid-7,mid+7]:t>=3?[mid-4,mid+4]:[])put(x,fTop+3,'g');
+    put(mid,peak+(t>=4?4:2),'g');}
+  else if(race==='orc'){                               // a palisade camp with a hide hut, watchtowers and a totem
+    const pTop=Math.round(H*.58);if(t>=2){rect(0,pTop,W,H-pTop,'b','B','B');spikes(0,pTop,W,'B');}else for(const sx of[0,2,W-3,W-1])for(let y=pTop+1;y<H;y++)put(sx,y,y===pTop+1?'B':'b');
+    const hw=t>=4?5:4,hTop=pTop-2;rect(mid-hw+1,hTop,hw*2-1,H-hTop,'b','B');roof(mid,hTop-1,hw,'f','B');put(mid,hTop-hw-2,'o');
+    const wt=x=>{const top=Math.round(H*.22);rect(x,top,3,H-top,'b','B');for(let k=x-1;k<=x+3;k++)put(k,top-1,'B');put(x,top-2,'B');put(x+2,top-2,'B');return top;};
+    if(t>=3)put(2,wt(1)-3,'o');
+    if(t>=4){const top=wt(W-4);put(W-3,top-3,'f');put(W-3,top-4,'F');}
+    if(t>=5){for(let y=2;y<pTop;y++)put(mid+hw+2,y,y%3===0?'o':'B');flag(mid+hw+3,1);}
+    gate(mid,3);}
+  else if(race==='undead'){                            // a crypt of dark stone with needle spires
+    const wTop=Math.round(H*.6);if(t>=2){rect(0,wTop,W,H-wTop,'p','P','P');spikes(0,wTop,W,'P');}
+    const cw=t>=4?7:5,cTop=Math.round(H*.36);rect(mid-(cw>>1),cTop,cw,H-cTop,'p','P');spire(mid,cTop-1,t>=4?Math.round(H*.34):3,'p','P');
+    for(let y=cTop+2;y<wTop;y+=2)put(mid,y,'g');
+    if(t>=3)for(const sx of[2,W-3]){const st=Math.round(H*.46);rect(sx-1,st,3,H-st,'p','P');spire(sx,st-1,Math.round(H*.26),'p','P');put(sx,st+2,'g');}
+    if(t>=5){for(const sx of[5,W-6])spire(sx,wTop-1,Math.round(H*.3),'p','P');for(let x=1;x<W;x+=4)put(x,wTop+1,'o');}
+    gate(mid,3,'g');put(mid,H-1,'k');}
+  else{                                                // humans and free lords: a stone castle with red cone roofs
+    const wTop=Math.round(H*.6);if(t>=2){rect(0,wTop,W,H-wTop,'s','S','d');crenel(0,wTop,W,'s');}else{rect(mid-4,H-3,3,3,'w','W');roof(mid-3,H-4,2,'r','R');}
+    const kw=t>=4?7:5,kh=kw>>1,kTop=t>=4?Math.round(H*.36):Math.round(H*.44);rect(mid-kh,kTop,kw,H-kTop,'s','S','d');
+    roof(mid,kTop-1,kh+1,'r','R');flag(mid,Math.max(0,kTop-kh-5));
+    for(let y=kTop+2;y<wTop;y+=3)put(mid,y,'k');
+    if(t>=3)for(const tx of[1,W-4]){const tTop=Math.round(H*.46);rect(tx,tTop,3,H-tTop,'s','S','d');roof(tx+1,tTop-1,2,'r','R');}
+    if(t>=4)for(const gx of[mid-3,mid+2]){rect(gx,wTop-3,2,H-wTop+3,'s','S');put(gx,wTop-4,'s');}
+    if(t>=5)for(const tx of[5,W-8]){const tTop=Math.round(H*.4);rect(tx,tTop,3,H-tTop,'s','S','d');roof(tx+1,tTop-1,2,'r','R');put(tx+1,tTop-4,'y');}
+    gate(mid,3);}
   SETTLE_GRID[key]=g.map(r=>r.join(''));return key;}
 /* hand-placed pixel settlements: at map scale every pixel counts, so these are drawn pixel by pixel */
 const SETTLE_GRID={
@@ -3233,8 +3260,8 @@ const SETTLE_GRID={
 };
 function settleCanvas(k,col){const key=k+'|'+col;if(settleArt.has(key))return settleArt.get(key);
   const rows=SETTLE_GRID[k],H=rows.length,W=Math.max(...rows.map(r=>r.length)),cv=document.createElement('canvas');cv.width=W+2;cv.height=H+2;const c=cv.getContext('2d');
-  const glow=k==='undead'?DK.ghost[2]:DK.rune[2],T=teamRamp(col);
-  const C={k:'#0b0a0e',s:DK.stone[2],S:DK.stone[1],d:DK.stone[0],w:GR.plaster[2],W:GR.plaster[1],r:GR.roof[2],R:GR.roof[1],b:DK.wood[2],B:DK.wood[1],x:T[3],X:T[2],y:DK.gold[2],g:glow,o:DK.bone[3],f:GR.ember[2],F:GR.ember[3]};
+  const glow=k.includes('undead')?DK.ghost[2]:DK.rune[2],T=teamRamp(col);
+  const C={k:'#0b0a0e',s:DK.stone[2],S:DK.stone[1],d:DK.stone[0],w:GR.plaster[2],W:GR.plaster[1],r:GR.roof[2],R:GR.roof[1],b:DK.wood[2],B:DK.wood[1],x:T[3],X:T[2],y:DK.gold[2],g:glow,o:DK.bone[3],f:GR.ember[2],F:GR.ember[3],n:'#5a4c3a',N:'#3e3428',p:'#4a4058',P:'#2e283a'};
   const on=(x,y)=>y>=0&&y<H&&x>=0&&x<rows[y].length&&rows[y][x]!=='.';
   for(let y=-1;y<=H;y++)for(let x=-1;x<=W;x++){if(on(x,y)){c.fillStyle=C[rows[y][x]]||'#f0f';c.fillRect(x+1,y+1,1,1);}
     else if(on(x-1,y)||on(x+1,y)||on(x,y-1)||on(x,y+1)){c.fillStyle=DK.out;c.fillRect(x+1,y+1,1,1);}}
@@ -3488,7 +3515,7 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
      const midY=(L.cy-1.5*2/RS)*RS,parts=L.wall?wallColumns(L.wall):null;
      if(parts)drawWall(bctx,parts.back,parts.towersBack,L.wall.wl,true);
      const items=L.houses.map(([hx,hy],j)=>({y:Math.round(hy*RS),f:()=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2)}));
-     items.push({y:Math.round(cy),f:()=>{if(t>=2&&o>=0){const art=settleCanvas(fortKey(raceOf(o),t),col);bctx.drawImage(art,Math.round(cx-art.width/2),Math.round(cy-art.height+2));}else stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}});
+     items.push({y:Math.round(cy),f:()=>{if(true){const art=settleCanvas(fortKey(o<0?'wild':raceOf(o),t),col);bctx.drawImage(art,Math.round(cx-art.width/2),Math.round(cy-art.height+2));}else stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}});
      items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
      if(parts)drawWall(bctx,parts.front,parts.towersFront,L.wall.wl,false);}
     (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)+.5)*RS)-3,Math.round(((v.wy??v.y)+2)*RS)-6,p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
