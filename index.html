@@ -3616,11 +3616,16 @@ function wallColumns(W){const cols=new Map(),pts=W.pts;let cyc=0;for(const q of 
   const all=[...cols.values()].sort((a,b)=>a.Y-b.Y),tw=W.towers.map(([x,y])=>({X:Math.round(x*RS),Y:Math.round(y*RS),back:y<cyc}));
   return{back:all.filter(c=>c.back),front:all.filter(c=>!c.back),towersBack:tw.filter(t=>t.back),towersFront:tw.filter(t=>!t.back)};}
 function drawWall(c,cols,towers,wl,back){const H=4+Math.min(3,wl),face=back?'#5e5a52':'#8e887a',top=back?'#9a958a':'#cfc9ba',dark='#16141c';
-  c.fillStyle=dark;for(const{X,Y}of cols)c.fillRect(X-1,Y-H-1,3,H+2);            // outline
-  c.fillStyle=face;for(const{X,Y}of cols)c.fillRect(X,Y-H+1,1,H-1);               // stone face
-  for(const{X,Y}of cols){if(X%3===0){c.fillStyle=dark;c.fillRect(X,Y-H,1,1);}else{c.fillStyle=top;c.fillRect(X,Y-H,1,1);}}   // crown with crenels
-  for(const{X,Y}of towers.sort((a,b)=>a.Y-b.Y)){const TH=H+5;c.fillStyle=dark;c.fillRect(X-3,Y-TH-2,7,TH+3);c.fillStyle=back?'#6e6a60':'#9e988a';c.fillRect(X-2,Y-TH,5,TH);
-    c.fillStyle=back?'#a8a296':'#ddd7c8';c.fillRect(X-2,Y-TH,5,1);c.fillStyle=dark;c.fillRect(X-1,Y-TH-2,1,1);c.fillRect(X+1,Y-TH-2,1,1);c.fillRect(X,Y-TH+3,1,2);}}
+  const pass=arr=>{if(!arr.length)return;
+    c.fillStyle=dark;for(const{X,Y}of arr)c.fillRect(X-1,Y-H-1,3,H+2);            // outline
+    c.fillStyle=face;for(const{X,Y}of arr)c.fillRect(X,Y-H+1,1,H-1);               // stone face
+    for(const{X,Y}of arr){c.fillStyle=X%3===0?dark:top;c.fillRect(X,Y-H,1,1);}};   // crown with crenels
+  const tower=({X,Y})=>{const TH=H+5;c.fillStyle=dark;c.fillRect(X-3,Y-TH-2,7,TH+3);c.fillStyle=back?'#6e6a60':'#9e988a';c.fillRect(X-2,Y-TH,5,TH);
+    c.fillStyle=back?'#a8a296':'#ddd7c8';c.fillRect(X-2,Y-TH,5,1);c.fillStyle=dark;c.fillRect(X-1,Y-TH-2,1,1);c.fillRect(X+1,Y-TH-2,1,1);c.fillRect(X,Y-TH+3,1,2);};
+  // painter's order: wall pieces and towers together from back (small Y) to front (large Y)
+  const sorted=cols.slice().sort((a,b)=>a.Y-b.Y),tw=towers.slice().sort((a,b)=>a.Y-b.Y);let start=0;
+  for(const t of tw){let end=start;while(end<sorted.length&&sorted[end].Y<=t.Y)end++;pass(sorted.slice(start,end));start=end;tower(t);}
+  pass(sorted.slice(start));}
 const _layout=new Map();
 function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))return _layout.get(key);
   const m=MAP.provs[i],F=2/RS,cx=Math.round(m.lx/CS)-5.5,cy=Math.round(m.ly/CS)+1,vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
