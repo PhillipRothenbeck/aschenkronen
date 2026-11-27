@@ -3201,6 +3201,25 @@ const SETTLE={
  burnt:[10,9,P=>{P.Q([1.5,4,3,3,3,8.5,1.5,8.5],DK.rag);P.Q([6.5,5,8.5,4,8.5,8.5,6.5,8.5],DK.rag);P.E(5,7.4,2.6,1.4,GR.ember);P.dot(4.4,6.6,.6,GR.ember[3]);}],
 };
 const settleArt=new Map();
+/* the fortress in the middle of a town grows with its tier: a wall, corner towers and a keep, in each people's style */
+const FORT_W=[13,15,19,23,27],FORT_H=[11,13,16,19,22];
+function fortKey(race,t){const key='fort|'+race+'|'+t;if(SETTLE_GRID[key])return key;
+  const W=FORT_W[t-1],H=FORT_H[t-1],g=Array.from({length:H},()=>Array(W).fill('.')),put=(x,y,ch)=>{if(x>=0&&x<W&&y>=0&&y<H)g[y][x]=ch;};
+  const wood=race==='orc',Lc=wood?'b':'s',Dc=wood?'B':'S',Ec=wood?'B':'d';
+  const block=(x0,w,top,crown)=>{for(let y=top;y<H;y++)for(let x=x0;x<x0+w;x++)put(x,y,x===x0?Dc:x===x0+w-1?Ec:((x*7+y*3)%11===0?Dc:Lc));
+    for(let x=x0;x<x0+w;x++){const k=x-x0;if(crown==='spikes'){if(k%2===0)put(x,top-1,Ec);if(k%4===0)put(x,top-2,Ec);}else if(k%2===0)put(x,top-1,Lc);}};
+  const crown=race==='undead'||wood?'spikes':'crenels',tw=Math.max(3,Math.round(W*.2)),kw=Math.max(5,Math.round(W*.34))|1;
+  const wallTop=Math.round(H*.56),towerTop=Math.round(H*.33)+1,keepTop=3,kx=(W-kw)>>1,mid=kx+(kw>>1);
+  block(0,W,wallTop,crown);if(t>=3){block(0,tw,towerTop,crown);block(W-tw,tw,towerTop,crown);}block(kx,kw,keepTop+(t>=4?0:2),crown);
+  const win=race==='undead'||race==='dwarf'?'g':'k';
+  for(let y=keepTop+3;y<wallTop-1;y+=3)put(mid,y,win);if(t>=3){put(tw>>1,towerTop+2,win);put(W-1-(tw>>1),towerTop+2,win);}
+  for(let y=H-3;y<H;y++)for(let x=mid-1;x<=mid+1;x++)put(x,y,'k');put(mid,H-4,'k');
+  if(race==='dwarf')for(let x=0;x<W;x++)if(g[wallTop+1][x]!=='.'&&g[wallTop+1][x]!=='k')put(x,wallTop+1,'y');
+  if(wood)put(mid,(t>=4?keepTop:keepTop+2)-2,'o');
+  if(t>=4){put(mid,1,'b');put(mid,0,'x');put(mid+1,0,'X');}
+  if(t>=3&&(race==='human'||race==='wild'))for(const fx of[tw>>1,W-1-(tw>>1)]){put(fx,towerTop-2,'b');put(fx,towerTop-3,'x');put(fx+1,towerTop-3,'X');}
+  for(let x=0;x<W;x++)if(g[H-1][x]!=='.'&&g[H-1][x]!=='k')put(x,H-1,Ec);
+  SETTLE_GRID[key]=g.map(r=>r.join(''));return key;}
 /* hand-placed pixel settlements: at map scale every pixel counts, so these are drawn pixel by pixel */
 const SETTLE_GRID={
  human:["..x.......x..","..xX......xX.","..b.......b..",".s.s.....s.s.",".sSs.s.s.sSs.",".sSssssssSSs.",".sSsSsSsSsSs.",".sSsSSkSSsSs.",".sSSSkkkSSSs.",".dSSSkkkSSSd.",".ddddkkkdddd."],
@@ -3469,7 +3488,7 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
      const midY=(L.cy-1.5*2/RS)*RS,parts=L.wall?wallColumns(L.wall):null;
      if(parts)drawWall(bctx,parts.back,parts.towersBack,L.wall.wl,true);
      const items=L.houses.map(([hx,hy],j)=>({y:Math.round(hy*RS),f:()=>stampC(bctx,j>=4?VIL_BIG:VIL_ST,Math.round(hx*RS)-(j>=4?5:3),Math.round(hy*RS)-6,col,2)}));
-     items.push({y:Math.round(cy),f:()=>stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2)});
+     items.push({y:Math.round(cy),f:()=>{if(t>=2&&o>=0){const art=settleCanvas(fortKey(raceOf(o),t),col);bctx.drawImage(art,Math.round(cx-art.width/2),Math.round(cy-art.height+2));}else stampC(bctx,st,Math.round(cx)-st[0].length,Math.round(cy)-st.length*2,col,2);}});
      items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
      if(parts)drawWall(bctx,parts.front,parts.towersFront,L.wall.wl,false);}
     (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)+.5)*RS)-3,Math.round(((v.wy??v.y)+2)*RS)-6,p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
@@ -3631,7 +3650,7 @@ function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))retur
   const m=MAP.provs[i],F=2/RS,cx=Math.round(m.lx/CS)-5.5,cy=Math.round(m.ly/CS)+1,vils=(m.vil||[]).map(v=>[(v.wx??v.x)+.5,(v.wy??v.y)+1.3]);
   const own=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<GW&&y<GH&&MAP.cell[y*GW+x]===i;};
   const free=(x,y,house)=>{for(const dy of[-2*F,-F,0,F])for(const dx of[-1.5*F,0,1.5*F])if(!own(x+dx,y+dy))return false;
-    const dc=Math.hypot(x-cx,(y-cy+2.5*F)*1.3);if(dc<5.6*F)return false;for(const[vx,vy]of vils){const dv=Math.hypot(x-vx,y-vy);if(dv<4.2*F||dv<dc-F)return false;}
+    const dc=Math.hypot(x-cx,(y-cy+2.5*F)*1.3),fw=(FORT_W[t-1]+2)/2/RS,fh=(FORT_H[t-1]+2)/RS;if(Math.abs(x-cx)<fw+.9&&y>cy-fh-.4&&y<cy+1.4)return false;if(dc<5.6*F)return false;for(const[vx,vy]of vils){const dv=Math.hypot(x-vx,y-vy);if(dv<4.2*F||dv<dc-F)return false;}
     for(const[hx,hy]of house)if(Math.hypot(x-hx,y-hy)<2.9*F)return false;return true;};
   // the town never reaches the villages: everything stays inside the distance to the nearest one
   const vilR=vils.length?Math.min(...vils.map(([vx,vy])=>Math.hypot(vx-cx,(vy-cy)/.62))):99,Rmax=14*F;
@@ -3639,7 +3658,7 @@ function townLayout(i,t,wl=0){const key=i+'|'+t+'|'+wl;if(_layout.has(key))retur
   for(let r=5.6*F;r<=Rmax&&houses.length<want;r+=1.2*F)for(let a=0;a<6.283&&houses.length<want;a+=.45){const x=cx+Math.cos(a+r)*r,y=cy+Math.sin(a+r)*r*.62;if(free(x,y,houses))houses.push([x,y]);}
   let wall=null;
   // a ring wall once walls are built: around castle and houses, but never around a village
-  const mh=houses.length?Math.max(...houses.map(([x,y])=>Math.hypot(x-cx,(y-cy)/.62))):0,Rw=Math.min(Math.max(mh+2.6*F,9*F),vilR-2.6*F);
+  const mh=houses.length?Math.max(...houses.map(([x,y])=>Math.hypot(x-cx,(y-cy)/.62))):0,Rw=Math.min(Math.max(mh+2.6*F,9*F,(FORT_W[t-1]+2)/2/RS/.9+1.2),vilR-2.6*F);
   if(wl>=1&&Rw>=7*F){const R=Rw,pts=[];
     for(let a=0;a<=6.3;a+=.06){const x=cx+Math.cos(a)*R,y=cy-1.5*F+Math.sin(a)*R*.62;pts.push([x,y,own(x,y)&&vils.every(([vx,vy])=>Math.hypot(x-vx,y-vy)>=4.2*F)]);}
     const nT=[0,4,6,8][Math.min(3,wl)],step=Math.max(1,Math.floor(pts.length/nT));wall={pts,towers:pts.filter((q,j)=>j%step===Math.floor(step/2)&&q[2]),wl};}
