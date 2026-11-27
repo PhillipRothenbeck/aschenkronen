@@ -864,7 +864,7 @@ function newGame(facKey,diff=1){
     taken.add(cap);
     if(race==='dwarf')MAP.provs[cap].terrain='mountains';else if(race==='undead')MAP.provs[cap].terrain='blight';
     else if(MAP.provs[cap].terrain==='mountains'||MAP.provs[cap].terrain==='blight')MAP.provs[cap].terrain='plains';
-    const f={id:k,key:D.key,name:D.name,race,color:D.color,player:k===0,minor:!!D.minor,cap,home:cap,ruler:0,kin:[],res:{gold:k===0?DIFF[diff].gold:160,grain:40,timber:40,stone:30,iron:15,cloth:20,mana:10},prestige:0,alive:true,aggr:clamp(.35+R()*.45+(k?DIFF[diff].aggr:0),.1,.95),tax:'normal'};
+    const f={id:k,key:D.key,name:D.name,race,color:D.color,player:k===0,minor:!!D.minor,cap,home:cap,ruler:0,kin:[],res:{gold:k===0?DIFF[diff].gold:160,grain:40,timber:40,stone:30,iron:30,cloth:20,mana:10},prestige:0,alive:true,aggr:clamp(.35+R()*.45+(k?DIFF[diff].aggr:0),.1,.95),tax:'normal'};
     S.facs.push(f);
     const p=S.provs[cap];p.owner=k;p.pop=[600,60,10];p.unrest=5;p.gar=[];
     p.b=D.minor?{farm:1,walls:1}:{farm:2,market:1,walls:1};const t=MAP.provs[cap].terrain;
@@ -920,8 +920,8 @@ function costTxt(c){return Object.entries(c).filter(([,v])=>v>0).map(([k,v])=>`$
 function initVillages(i){const p=S.provs[i],m=MAP.provs[i],nv=(m.vil||[]).length;p.vk=(m.vk0||VK_BY_TERR[m.terrain]).slice(0,nv);p.vl=new Array(nv).fill(0);p.vr=new Array(nv).fill(0);p.vo=new Array(nv).fill(p.owner);
   for(const k of['farm','lumber','quarry','mine','loom']){let L=p.b[k]||0;delete p.b[k];const kind=k==='loom'?'sheep':k;
     while(L>0){let j=p.vk.findIndex((kk,jj)=>kk===kind&&p.vl[jj]<3);if(j<0)j=p.vk.findIndex((kk,jj)=>p.vl[jj]<3);if(j<0)break;p.vl[j]++;L--;}}}
-function vPer(kind,m){const T=TERR[m.terrain];return kind==='farm'?T.grain+(m.coastal?2:0):kind==='lumber'?T.timber:kind==='quarry'?T.stone:kind==='mine'?Math.max(2,T.iron):kind==='abbey'?.6:kind==='trade'?4+(m.coastal?2:0):kind==='herb'?(m.terrain==='blight'?4:m.terrain==='forest'?2.5:1.2):T.cloth;}
-const vAllowed=(kind,m)=>kind!=='mine'||TERR[m.terrain].iron>0;
+function vPer(kind,m){const T=TERR[m.terrain];return kind==='farm'?T.grain+(m.coastal?2:0):kind==='lumber'?T.timber:kind==='quarry'?T.stone:kind==='mine'?(T.iron>0?Math.max(2,T.iron):1.5):kind==='abbey'?.6:kind==='trade'?4+(m.coastal?2:0):kind==='herb'?(m.terrain==='blight'?4:m.terrain==='forest'?2.5:1.2):T.cloth;}
+const vAllowed=(kind,m)=>true;   // mines everywhere: without ore veins they dig bog iron at a low yield
 const RESPEC_COST=25;
 function respec(f,i,j,kind){const p=S.provs[i];if(p.vo[j]!==f.id||p.vk[j]===kind||f.res.gold<RESPEC_COST||!vAllowed(kind,MAP.provs[i]))return false;f.res.gold-=RESPEC_COST;p.vk[j]=kind;p.vl[j]=Math.max(0,p.vl[j]-1);ui.dirtyBase=true;return true;}
 function villYield(i,owner){const p=S.provs[i],m=MAP.provs[i],y={grain:0,timber:0,stone:0,iron:0,cloth:0,gold:0,mana:0,prestige:0};
@@ -3940,7 +3940,7 @@ function provInfo0(i){const f=S.facs[0],p=S.provs[i],mine=p.owner===0,sk=SKIN[ra
   const own=o=>o===p.owner?'':`<span class="vown" style="--c:${colorOf(o)}" title="${esc(facName(o))}">${crestIc(o,12)}${o===0?'Du':o<0?'Frei':esc(S.facs[o].name.replace(/^(Haus|Clan|Die|Der Hof der) /,''))}</span>`;
   {const ho=homeOwnerOf(i);if(ho>=0)h+=`<p class="note ${ho===0&&p.owner!==0?'war':''}">${crestIc(ho,14)} ${ho===0?(p.owner===0?'Teil deines Heimatlands.':'Teil deines Heimatlands, aber nicht in deiner Hand. Hole es zurück!'):`Heimatland von ${esc(S.facs[ho].name)}. Sie werden es um jeden Preis haben wollen.`}</p>`;}
   h+=`<div class="sec"><h3>Siedlungen${m0.rich?` <span class="sub">${ic(RES_IC[m0.rich],14)} Reich an ${RES_N[m0.rich]} (+60 %)</span>`:''}</h3><div class="slist"><div class="srow">${ic('b_manor',22)}<span class="grow"><b>${esc(m0.city)}</b><small>Hauptstadt · Mauern ${lvl(p,'walls')}${m0.cgloss?` · »${esc(m0.cgloss)}«`:''}</small></span>${crestIc(p.owner,16)}</div>
-    ${(m0.vil||[]).map((v,j)=>{const k=p.vk[j],o=p.vo[j],can=myA&&hostile(0,o);return`<div class="srow ${p.vr[j]>0?'burnt':''}">${ic(p.vr[j]>0?'fire':VKIND[k].icon,22)}<span class="grow"><b>${esc(v.name)} ${pips(p.vl[j],3)}</b><small>${VKIND[k].n}${v.gloss?` · »${esc(v.gloss)}«`:''}${p.vr[j]>0?' · geplündert':''}</small></span>${own(o)}${can?`<button type="button" class="btn war" data-act="takevil" data-j="${j}">Einnehmen</button>`:crestIc(o,16)}</div>`;}).join('')}</div></div>`;
+    ${(m0.vil||[]).map((v,j)=>{const k=p.vk[j],o=p.vo[j],can=myA&&hostile(0,o);return`<div class="srow ${p.vr[j]>0?'burnt':''}">${ic(p.vr[j]>0?'fire':VKIND[k].icon,22)}<span class="grow"><b>${esc(v.name)} ${pips(p.vl[j],3)}</b><small>${VKIND[k].n}${v.gloss?` · »${esc(v.gloss)}«`:''}${p.vr[j]>0?' · geplündert':''}</small></span>${own(o)}${can?`<button type="button" class="btn war" data-act="takevil" data-j="${j}">Einnehmen</button>`:o===0?`<button type="button" class="btn" data-act="village" data-j="${j}">Ausbauen / Umstellen</button>`:crestIc(o,16)}</div>`;}).join('')}</div></div>`;
   if(mine){const y=provYield(i);
     const ch=['gold','grain','timber','stone','iron','cloth','mana'].map(k=>{let v=y[k];if(k==='grain')v-=y.food;if(k==='cloth')v-=y.clothNeed;return Math.abs(v)>=.5?`<span class="chip ${v<0?'neg':''}" title="${RES_N[k]}">${ic(RES_IC[k],14)}${sgn(v)}</span>`:'';}).join('');
     h+=`<div class="sec"><h3>Ertrag pro Saison</h3><div class="chips">${ch||'<span class="sub">Nichts</span>'}</div></div>`;
