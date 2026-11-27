@@ -974,7 +974,7 @@ function provYield(i){
   y.timber=vy.timber*eff;y.stone=vy.stone*eff;y.iron=vy.iron*eff;y.cloth=vy.cloth*eff;
   y.mana=(lvl(p,'tower')*3*(f&&f.race==='undead'?1.5:1)+(T.mana||0))*eff;
   const tax=f?TAXP[f.tax].m:1;
-  y.gold=(pe*.02+bu*.1+no*.3)*(1+stat(rl,'ste')*.04)*eff*tax;
+  y.gold=(pe*.02+bu*.1+no*.3)*(1+stat(rl,'ste')*.04)*eff*tax*(1+tierBonus(cityTier(p)).gold);
   if(lvl(p,'market')){const mk=f&&f.race==='human'?1.25:1;y.gold+=lvl(p,'market')*(3+bu*.03)*mk;for(const n of m.adj)if(S.provs[n].owner===p.owner&&lvl(S.provs[n],'market'))y.gold+=3*mk;}
   y.gold+=vy.gold*eff;y.mana+=vy.mana*eff;
   const foodMul=f?RACES[f.race].food:1;
@@ -990,7 +990,7 @@ function upkeep(f){const o={};const add=(t,gar)=>{for(const[k,v]of Object.entrie
 function project(f){
   const t={gold:0,grain:0,timber:0,stone:0,iron:0,cloth:0,mana:0,prestige:0};
   for(const i of owned(f.id)){const y=provYield(i),p=S.provs[i];t.gold+=y.gold;t.grain+=y.grain-y.food;t.timber+=y.timber;t.stone+=y.stone;t.iron+=y.iron;t.cloth+=y.cloth-y.clothNeed;t.mana+=y.mana;
-    t.prestige+=lvl(p,'manor')+lvl(p,'shrine')*.3+p.pop[2]/80+(y.prestige||0);}
+    t.prestige+=tierBonus(cityTier(p)).fame+lvl(p,'manor')+lvl(p,'shrine')*.3+p.pop[2]/80+(y.prestige||0);}
   S.provs.forEach((pp,i)=>{if(pp.owner===f.id||!pp.vo||!pp.vo.includes(f.id))return;const vy=villYield(i,f.id);for(const k in vy)t[k]+=vy[k];});
   const u=upkeep(f);for(const k in u)t[k]-=u[k];
   const rl=ruler(f);t.prestige+=tsum(rl,'prest');t.mana+=tsum(rl,'mana');
@@ -1017,20 +1017,21 @@ function econTurn(f){f.mk={};
   for(const i of owned(f.id)){
     const p=S.provs[i],m=MAP.provs[i],T=TERR[m.terrain];
     let[pe,bu,no]=p.pop;const tot=pe+bu+no;
-    const cap=T.cap+(m.coastal?200:0)+vsum(p,'farm')*120+(p.vk?p.vk.length:0)*60;
+    const cap=T.cap+(m.coastal?200:0)+vsum(p,'farm')*120+(p.vk?p.vk.length:0)*60+tierBonus(cityTier(p)).cap;
     if(!famine)pe+=pe*.025*(1-tot/cap)+2;else pe*=.95;
     if(lvl(p,'market')&&!clothShort&&bu<lvl(p,'market')*120){const mv=pe*.015;pe-=mv;bu+=mv;}
     if(lvl(p,'manor')&&!clothShort&&no<lvl(p,'manor')*25){const mv=bu*.02;bu-=mv;no+=mv;}
     if(clothShort){bu*=.97;no*=.96;}
     p.pop=[Math.max(20,pe),Math.max(0,bu),Math.max(0,no)];
     const isCap=i===f.cap;
-    let tgt=12-lvl(p,'shrine')*8-vsum(p,'abbey')*4-(p.vk||[]).filter((k,j)=>k==='abbey'&&p.vo[j]===p.owner).length*3-Math.min(p.gar.length,5)*2.5+p.conq+TAXP[f.tax].u+(famine?25:0)+(clothShort&&bu>20?10:0)+(p.gov?(50-p.gov.loy)/4:-8)+tsum(rl,'unrest')+(broke?10:0);
+    let tgt=12-tierBonus(cityTier(p)).calm-lvl(p,'shrine')*8-vsum(p,'abbey')*4-(p.vk||[]).filter((k,j)=>k==='abbey'&&p.vo[j]===p.owner).length*3-Math.min(p.gar.length,5)*2.5+p.conq+TAXP[f.tax].u+(famine?25:0)+(clothShort&&bu>20?10:0)+(p.gov?(50-p.gov.loy)/4:-8)+tsum(rl,'unrest')+(broke?10:0);
     if(S.armies.some(a=>a.owner===f.id&&a.prov===i))tgt-=6;
     p.unrest=clamp(p.unrest+(tgt-p.unrest)*.25,0,100);
     p.conq=Math.max(0,p.conq-2);
     if(p.gov){const t=55+clamp(f.prestige/15,-20,25)+stat(rl,'int')*2-p.unrest/3+tsum(rl,'loy');p.gov.loy=clamp(p.gov.loy+(t-p.gov.loy)*.1+(R()*4-2),0,100);}
     // garrison
-    const gmax=1+lvl(p,'walls')*2+lvl(p,'barracks');
+    const gmax=1+lvl(p,'walls')*2+lvl(p,'barracks')+tierBonus(cityTier(p)).gar;
+    {const nt=cityTier(p);if(p.tier&&nt>p.tier){f.prestige+=5*(nt-1);ui.dirtyBase=true;if(f.player)log(`${m.city} in ${m.name} ist zur ${TIER[nt-1].n} gewachsen! (+${5*(nt-1)} Ruhm)`,'good',true);}p.tier=nt;}
     for(const u of p.gar)u.str=Math.min(100,u.str+12);
     if(p.gar.length<gmax&&chance(.5))p.gar.push({t:p.gar.length%2?'bow':'spear',str:50});
     while(p.gar.length>gmax)p.gar.pop();
@@ -1056,8 +1057,16 @@ function neutralTurn(){for(const p of S.provs)if(p.owner<0){for(const u of p.gar
 
 /* building */
 function bCost(k,p,f){const L=lvl(p,k);const c={};for(const[r,v]of Object.entries(BLD[k].cost))c[r]=v*(L+1);return raceCost(c,f?f.race:'human');}
+/* CITY TIERS: a town grows with its buildings, burghers and nobles, and every tier pays back:
+   more tax, a higher population cap, extra building plots, a bigger garrison and calmer streets. */
+const TIER=[{n:'Weiler'},{n:'Marktflecken'},{n:'Stadt'},{n:'Großstadt'},{n:'Metropole'}],TIER_AT=[0,1.5,5,9.5,15];
+function cityScore(p){let s=0;for(const[k,v]of Object.entries(p.b||{}))s+=k==='walls'?v*.5:v;return s+((p.pop[1]||0)+(p.pop[2]||0)*3)/200;}
+function cityTier(p){const s=cityScore(p);let t=1;for(let i=1;i<TIER_AT.length;i++)if(s>=TIER_AT[i])t=i+1;return t;}
+const tierBonus=t=>({gold:.12*(t-1),cap:200*(t-1),slots:Math.max(0,t-2),gar:(t>=3?1:0)+(t>=5?1:0),calm:1.5*(t-1),fame:.15*(t-1)});
+function tierTxt(t){const b=tierBonus(t);if(t<2)return'Noch keine Boni. Baue Gebäude und lass Bürger und Adlige zuziehen.';
+  return[`+${Math.round(b.gold*100)} % Steuern`,`+${b.cap} Bevölkerungsgrenze`,b.slots?`+${b.slots} Bauplatz${b.slots>1?'e':''}`:'',b.gar?`+${b.gar} Garnison`:'',`−${String(b.calm).replace('.',',')} Unruhe`,`+${String(b.fame).replace('.',',')} Ruhm pro Saison`].filter(Boolean).join(' · ');}
 function devUsed(p){let s=0;for(const[k,v]of Object.entries(p.b))if(!BLD[k].free)s+=v;return s;}
-function devMax(p){return 3+Math.floor((p.pop[0]+p.pop[1]+p.pop[2])/250);}
+function devMax(p){return 3+Math.floor((p.pop[0]+p.pop[1]+p.pop[2])/250)+tierBonus(cityTier(p)).slots;}
 function canBuild(f,i,k){const p=S.provs[i],m=MAP.provs[i],B=BLD[k];const c=bCost(k,p,f);
   if(p.owner!==f.id)return{ok:false,why:'Nicht dein Besitz',c};
   const max=B.max||3;if(lvl(p,k)>=max)return{ok:false,why:'Voll ausgebaut',c};
@@ -1069,7 +1078,8 @@ function canBuild(f,i,k){const p=S.provs[i],m=MAP.provs[i],B=BLD[k];const c=bCos
   if(S.armies.some(a=>a.prov===i&&hostile(f.id,a.owner)))return{ok:false,why:'Wird belagert',c};
   if(!canAfford(f,c))return{ok:false,why:'Zu teuer',c};
   return{ok:true,c};}
-function build(f,i,k){const r=canBuild(f,i,k);if(!r.ok)return false;pay(f,r.c);S.provs[i].b[k]=lvl(S.provs[i],k)+1;
+function build(f,i,k){const r=canBuild(f,i,k);if(!r.ok)return false;pay(f,r.c);const t0=cityTier(S.provs[i]);S.provs[i].b[k]=lvl(S.provs[i],k)+1;
+  {const t1=cityTier(S.provs[i]);S.provs[i].tier=t1;ui.dirtyBase=true;if(f.player&&t1>t0){f.prestige+=5*(t1-1);log(`${MAP.provs[i].city} ist zur ${TIER[t1-1].n} gewachsen! (+${5*(t1-1)} Ruhm)`,'good');toast(`${MAP.provs[i].city} ist jetzt ${TIER[t1-1].n==='Stadt'?'eine':'ein'} ${TIER[t1-1].n}!`);}}
   if(k==='lair'&&f.player)log(`${RACES[f.race].lair} in ${MAP.provs[i].name} errichtet. Nun können Legenden gezüchtet werden.`,'good');return true;}
 function bName(k,f){return k==='lair'?RACES[f?f.race:'human'].lair:BLD[k].n;}
 function bEffect(k,m,f){const T=TERR[m.terrain];switch(k){
@@ -3448,7 +3458,12 @@ function renderBase(){_lc.clear();if(!MAP.hp)buildHiRes();const HL0=new Set(S.fa
       let ok=true;for(let j=-1;j<=st.length&&ok;j++)for(let k=-1;k<=st[0].length;k++)if(at(x+k,y+j)!==i){ok=false;break;}
       if(!ok||(Math.abs(x-lx)<9&&Math.abs(y-ly)<7))continue;{const wd=MAP.warp(x*RS,y*RS);stamp(bctx,st,Math.round((x-wd[0])*RS),Math.round((y-wd[1])*RS),2);}placed++;}}
   for(let i=0;i<np;i++){const m=MAP.provs[i],p=S.provs[i],o=p.owner,col=o<0?'#9a8f80':colorOf(o);
-    stampC(bctx,CITY_ST[o<0?'wild':raceOf(o)],(Math.round(m.lx/CS)-8)*RS,(Math.round(m.ly/CS)-4)*RS,col,2);
+    {const t=cityTier(p),cx0=(Math.round(m.lx/CS)-8)*RS,cy0=(Math.round(m.ly/CS)-4)*RS;
+     if(t>=4){bctx.save();bctx.strokeStyle='#1a1820';bctx.lineWidth=3;bctx.beginPath();bctx.ellipse(cx0+5,cy0+8,t>=5?27:23,t>=5?12:10,0,0,7);bctx.stroke();bctx.strokeStyle='#8a8478';bctx.lineWidth=1.4;bctx.stroke();
+       for(let a=0;a<6.28;a+=1.05){const tx=cx0+5+Math.cos(a)*(t>=5?27:23),ty=cy0+8+Math.sin(a)*(t>=5?12:10);bctx.fillStyle='#1a1820';bctx.fillRect(tx-2,ty-3,4,5);bctx.fillStyle='#9a9488';bctx.fillRect(tx-1.4,ty-2.4,2.8,3.6);}bctx.restore();}
+     const spots=[[-11,4],[15,4],[-7,10],[11,10],[-17,-2],[21,-2],[2,13],[-13,11]],n=[0,2,4,6,8][t-1];
+     for(let q=0;q<n;q++){const[dx,dy]=spots[q];stampC(bctx,q>=4?VIL_BIG:VIL_ST,cx0+dx,cy0+dy,col,2);}
+     stampC(bctx,CITY_ST[o<0?'wild':raceOf(o)],cx0,cy0,col,2);}
     (m.vil||[]).forEach((v,j)=>stampC(bctx,p.vr&&p.vr[j]>0?VIL_BURNT:(p.vl&&p.vl[j]>=2?VIL_BIG:VIL_ST),Math.round(((v.wx??v.x)-1)*RS),Math.round(((v.wy??v.y)-1)*RS),p.vo&&p.vo[j]!==o?(p.vo[j]<0?'#9a8f80':colorOf(p.vo[j])):col,2));}
   ui.dirtyBase=false;}
 function moveTargets(){const a=ui.selArmy&&S.armies.find(x=>x.id===ui.selArmy);if(!a||a.moved||a.owner!==0)return new Map();
@@ -3952,12 +3967,14 @@ function provInfo(i){return provInfo0(i)+tradeSec(i);}
 function provInfo0(i){const f=S.facs[0],p=S.provs[i],mine=p.owner===0,sk=SKIN[raceOf(p.owner)];
   let h=`<div class="pop">${[['Bauern','#9a6a3a',0],['Bürger','#5f9de0',1],['Adlige','#b07ef0',2]].map(([n,c,j])=>`<div title="${n}">${ic('person',24,{x:c,c:sk})}<span><b>${fmt(p.pop[j])}</b><small>${n}</small></span></div>`).join('')}</div>`;
   {const mine2=S.armies.filter(a=>a.owner===0&&a.prov===i);if(mine2.length)h+=`<div class="sec"><h3>Deine Heere hier</h3>${mine2.map(a=>`<div class="army ${a.id===ui.selArmy||a.id===ui.pick?'sel':''}">${armyLine(a)}</div>`).join('')}</div>`;}
+  {const t=cityTier(p),sc=cityScore(p),lo=TIER_AT[t-1],hi=TIER_AT[t]??null,pct=hi?Math.round((sc-lo)/(hi-lo)*100):100;
+   h+=`<div class="sec"><h3>${ic('b_manor',16)} ${TIER[t-1].n} <span class="sub">Stufe ${t} von 5${hi?` · nächste: ${TIER[t].n}`:' · höchste Stufe'}</span></h3>${bar(pct,'var(--gold)')}<small class="sub">${esc(tierTxt(t))}${mine&&hi?'. Wächst durch Gebäude, Bürger und Adlige.':''}</small></div>`;}
   h+=`<div class="brow" title="Hohe Unruhe führt zu Aufständen">${ic('fire',18)}<span>Unruhe</span>${bar(p.unrest,p.unrest>60?'var(--red)':p.unrest>35?'var(--gold)':'var(--green)')}<b>${fmt(p.unrest)}%</b></div>`;
   const m0=MAP.provs[i];
   const myA=S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved&&a.id===ui.selArmy)||S.armies.find(a=>a.owner===0&&a.prov===i&&!a.moved);
   const own=o=>o===p.owner?'':`<span class="vown" style="--c:${colorOf(o)}" title="${esc(facName(o))}">${crestIc(o,12)}${o===0?'Du':o<0?'Frei':esc(S.facs[o].name.replace(/^(Haus|Clan|Die|Der Hof der) /,''))}</span>`;
   {const ho=homeOwnerOf(i);if(ho>=0)h+=`<p class="note ${ho===0&&p.owner!==0?'war':''}">${crestIc(ho,14)} ${ho===0?(p.owner===0?'Teil deines Heimatlands.':'Teil deines Heimatlands, aber nicht in deiner Hand. Hole es zurück!'):`Heimatland von ${esc(S.facs[ho].name)}. Sie werden es um jeden Preis haben wollen.`}</p>`;}
-  h+=`<div class="sec"><h3>Siedlungen${m0.rich?` <span class="sub">${ic(RES_IC[m0.rich],14)} Reich an ${RES_N[m0.rich]} (+60 %)</span>`:''}</h3><div class="slist"><div class="srow">${ic('b_manor',22)}<span class="grow"><b>${esc(m0.city)}</b><small>Hauptstadt · Mauern ${lvl(p,'walls')}${m0.cgloss?` · »${esc(m0.cgloss)}«`:''}</small></span>${crestIc(p.owner,16)}</div>
+  h+=`<div class="sec"><h3>Siedlungen${m0.rich?` <span class="sub">${ic(RES_IC[m0.rich],14)} Reich an ${RES_N[m0.rich]} (+60 %)</span>`:''}</h3><div class="slist"><div class="srow">${ic('b_manor',22)}<span class="grow"><b>${esc(m0.city)}</b><small>${TIER[cityTier(p)-1].n} · Mauern ${lvl(p,'walls')}${m0.cgloss?` · »${esc(m0.cgloss)}«`:''}</small></span>${crestIc(p.owner,16)}</div>
     ${(m0.vil||[]).map((v,j)=>{const k=p.vk[j],o=p.vo[j],can=myA&&hostile(0,o);return`<div class="srow ${p.vr[j]>0?'burnt':''}">${ic(p.vr[j]>0?'fire':VKIND[k].icon,22)}<span class="grow"><b>${esc(v.name)} ${pips(p.vl[j],3)}</b><small>${VKIND[k].n}${v.gloss?` · »${esc(v.gloss)}«`:''}${p.vr[j]>0?' · geplündert':''}</small></span>${own(o)}${can?`<button type="button" class="btn war" data-act="takevil" data-j="${j}">Einnehmen</button>`:o===0?`<button type="button" class="btn" data-act="village" data-j="${j}">Ausbauen / Umstellen</button>`:crestIc(o,16)}</div>`;}).join('')}</div></div>`;
   if(mine){const y=provYield(i);
     const ch=['gold','grain','timber','stone','iron','cloth','mana'].map(k=>{let v=y[k];if(k==='grain')v-=y.food;if(k==='cloth')v-=y.clothNeed;return Math.abs(v)>=.5?`<span class="chip ${v<0?'neg':''}" title="${RES_N[k]}">${ic(RES_IC[k],14)}${sgn(v)}</span>`:'';}).join('');
